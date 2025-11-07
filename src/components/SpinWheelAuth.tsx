@@ -91,55 +91,73 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <div className="relative w-[400px] h-[400px]">
-        {/* Pointer */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-          <div className="w-0 h-0 border-l-[20px] border-l-transparent border-r-[20px] border-r-transparent border-t-[40px] border-t-gold"></div>
-        </div>
-
-        {/* Wheel */}
+      <div className="relative w-[320px] h-[320px] md:w-[450px] md:h-[450px]">
+        {/* Triangle Pointer */}
         <div
-          className="relative w-full h-full rounded-full overflow-hidden border-8 border-gradient-to-r from-primary via-secondary to-accent glow-cyan"
+          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 w-0 h-0 z-20"
           style={{
-            transform: `rotate(${rotation}deg)`,
-            transition: isSpinning ? "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
+            borderLeft: "15px solid transparent",
+            borderRight: "15px solid transparent",
+            borderTop: "25px solid hsl(185 95% 60%)",
+            filter: "drop-shadow(0 0 8px hsl(185 95% 60%))",
           }}
-        >
-          {prizes.map((prize, index) => {
-            const colors = ["#FF6B9D", "#C084FC", "#60A5FA", "#34D399", "#FBBF24", "#F87171"];
-            return (
-              <div
-                key={prize.id}
-                className="absolute top-1/2 left-1/2 origin-bottom-left"
-                style={{
-                  transform: `rotate(${index * segmentAngle}deg)`,
-                  width: "50%",
-                  height: "50%",
-                }}
-              >
+        />
+
+        {/* Rainbow Border */}
+        <div className="rainbow-border-thick rounded-full">
+          {/* Wheel */}
+          <div
+            className="relative w-full h-full rounded-full overflow-hidden bg-background"
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              transition: isSpinning ? "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
+            }}
+          >
+            {prizes.map((prize, index) => {
+              const colors = [
+                "hsl(0 84% 60%)",    // red
+                "hsl(200 90% 50%)",  // teal/cyan
+                "hsl(280 90% 60%)",  // purple
+                "hsl(50 95% 60%)",   // yellow
+                "hsl(330 90% 60%)",  // pink
+                "hsl(145 95% 55%)",  // green
+                "hsl(25 95% 60%)",   // orange
+                "hsl(220 90% 56%)",  // blue
+              ];
+              const segmentAngle = 360 / prizes.length;
+              return (
                 <div
-                  className="h-full flex items-center justify-center"
+                  key={prize.id}
+                  className="absolute w-1/2 h-1/2 origin-bottom-right flex items-center justify-center"
                   style={{
-                    clipPath: `polygon(0 0, 100% 0, 100% 100%)`,
-                    background: colors[index % colors.length],
+                    transform: `rotate(${index * segmentAngle}deg) skewY(${-90 + segmentAngle}deg)`,
+                    transformOrigin: "bottom right",
+                    left: "50%",
+                    top: "50%",
+                    backgroundColor: colors[index % colors.length],
                   }}
                 >
-                  <span className="absolute top-1/4 right-1/4 text-2xl font-bold text-white transform rotate-45">
+                  <div
+                    className="text-2xl md:text-3xl font-bold"
+                    style={{
+                      transform: `skewY(${90 - segmentAngle}deg) rotate(${segmentAngle / 2}deg)`,
+                    }}
+                  >
                     {prize.emoji}
-                  </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
 
-          {/* Center button */}
-          <button
-            onClick={spinWheel}
-            disabled={isSpinning}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-gradient-to-r from-gold to-gold/80 rounded-full flex items-center justify-center text-gold-foreground font-bold text-lg shadow-lg hover:scale-110 transition-transform disabled:opacity-50 z-10"
-          >
-            {isSpinning ? "..." : "SPIN"}
-          </button>
+            {/* Center button */}
+            <button
+              onClick={spinWheel}
+              disabled={isSpinning}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-gold to-gold/70 text-background font-black text-xl md:text-2xl hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 z-10 glow-gold shadow-2xl"
+            >
+              {isSpinning ? "..." : "SPIN"}
+            </button>
+          </div>
         </div>
       </div>
 

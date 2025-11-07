@@ -55,7 +55,7 @@ All colors MUST be HSL.
     --gradient-primary: linear-gradient(135deg, hsl(145 95% 55%), hsl(185 95% 60%));
     --gradient-gold: linear-gradient(135deg, hsl(45 93% 58%), hsl(38 92% 50%));
     --gradient-cyan-pink: linear-gradient(135deg, hsl(185 95% 60%), hsl(325 90% 60%));
-    --gradient-rainbow: linear-gradient(90deg, hsl(185 95% 60%), hsl(325 90% 60%), hsl(25 95% 60%), hsl(50 95% 60%));
+    --gradient-rainbow: linear-gradient(135deg, hsl(220 90% 56%), hsl(280 90% 60%), hsl(330 90% 60%), hsl(50 95% 60%), hsl(145 95% 55%), hsl(185 95% 60%));
     
     /* Shadows and glows with Supporterswin colors */
     --glow-green: 0 0 40px hsl(145 95% 55% / 0.6);
@@ -174,6 +174,40 @@ All colors MUST be HSL.
 
   .animate-confetti {
     animation: confetti-fall 3s linear;
+  }
+
+  /* Rainbow border animation */
+  @keyframes rainbow-border {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .rainbow-border {
+    position: relative;
+    background: linear-gradient(90deg, hsl(220 90% 56%), hsl(280 90% 60%), hsl(330 90% 60%), hsl(50 95% 60%), hsl(145 95% 55%), hsl(185 95% 60%));
+    background-size: 300% 300%;
+    animation: rainbow-border 3s ease infinite;
+    padding: 3px;
+  }
+
+  .rainbow-border-thick {
+    position: relative;
+    background: linear-gradient(90deg, hsl(220 90% 56%), hsl(280 90% 60%), hsl(330 90% 60%), hsl(50 95% 60%), hsl(145 95% 55%), hsl(185 95% 60%));
+    background-size: 300% 300%;
+    animation: rainbow-border 3s ease infinite;
+    padding: 4px;
+  }
+
+  .neon-cyan-border {
+    border: 3px solid hsl(185 95% 60%);
+    box-shadow: 0 0 20px hsl(185 95% 60% / 0.8), inset 0 0 20px hsl(185 95% 60% / 0.3);
   }
 }
 

@@ -77,21 +77,28 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
   return (
     <div className="relative">
       {/* Wheel Container */}
-      <div className="relative w-[320px] h-[320px] md:w-[500px] md:h-[500px]">
-        {/* Glow Effect */}
-        <div className="absolute inset-0 rounded-full glow-cyan animate-pulse-glow" />
-
-        {/* Wheel */}
+      <div className="relative w-[320px] h-[320px] md:w-[450px] md:h-[450px]">
+        {/* Triangle Pointer */}
         <div
-          className={`relative w-full h-full rounded-full border-4 border-transparent bg-gradient-to-r from-cyan via-accent to-primary p-1 ${
-            isSpinning ? "animate-spin-wheel" : ""
-          }`}
+          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 w-0 h-0 z-20"
           style={{
-            transform: `rotate(${rotation}deg)`,
-            transition: isSpinning ? "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
+            borderLeft: "15px solid transparent",
+            borderRight: "15px solid transparent",
+            borderTop: "25px solid hsl(185 95% 60%)",
+            filter: "drop-shadow(0 0 8px hsl(185 95% 60%))",
           }}
-        >
-          <div className="w-full h-full rounded-full bg-card relative overflow-hidden">
+        />
+
+        {/* Rainbow Border */}
+        <div className="rainbow-border-thick rounded-full">
+          {/* Wheel */}
+          <div
+            className="relative w-full h-full rounded-full overflow-hidden bg-background"
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              transition: isSpinning ? "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
+            }}
+          >
             {prizes.map((prize, index) => (
               <div
                 key={prize.id}
@@ -105,7 +112,7 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
                 }}
               >
                 <div
-                  className="text-xl md:text-2xl font-bold text-white"
+                  className="text-2xl md:text-3xl font-bold"
                   style={{
                     transform: `skewY(${90 - segmentAngle}deg) rotate(${segmentAngle / 2}deg)`,
                   }}
@@ -119,22 +126,12 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
             <button
               onClick={spinWheel}
               disabled={isSpinning}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-gold to-gold/80 text-gold-foreground font-bold text-lg md:text-xl hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 z-10 shadow-lg"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-gold to-gold/70 text-background font-black text-xl md:text-2xl hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 z-10 glow-gold shadow-2xl"
             >
               {isSpinning ? "..." : "SPIN"}
             </button>
           </div>
         </div>
-
-        {/* Triangle Pointer */}
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 w-0 h-0 z-20"
-          style={{
-            borderLeft: "20px solid transparent",
-            borderRight: "20px solid transparent",
-            borderTop: "30px solid hsl(var(--gold))",
-          }}
-        />
       </div>
     </div>
   );

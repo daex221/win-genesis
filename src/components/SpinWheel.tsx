@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useSounds } from "@/hooks/useSounds";
 
 interface Prize {
   id: string;
@@ -16,6 +17,7 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [prizes, setPrizes] = useState<Prize[]>([]);
+  const { playSpinStart, playSpinTicks, playWin, playClick } = useSounds();
 
   // Fetch prizes on mount
   useState(() => {
@@ -41,6 +43,10 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
     if (isSpinning || prizes.length === 0) return;
 
     setIsSpinning(true);
+    
+    // Play start sound
+    playSpinStart();
+    playSpinTicks(4000);
 
     // For demo spins, randomly select a prize locally
     const randomPrizeIndex = Math.floor(Math.random() * prizes.length);
@@ -57,6 +63,7 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
     // After animation completes (4 seconds)
     setTimeout(() => {
       setIsSpinning(false);
+      playWin();
       onPrizeWon({ name: wonPrize.name, emoji: wonPrize.emoji });
       toast.info("This was a demo spin! Purchase a tier to win real prizes.");
     }, 4000);
@@ -134,7 +141,10 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
 
             {/* Center Button */}
             <button
-              onClick={spinWheel}
+              onClick={() => {
+                playClick();
+                spinWheel();
+              }}
               disabled={isSpinning}
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-gold to-gold/70 text-background font-black text-xl md:text-2xl hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 z-10 glow-gold shadow-2xl"
             >

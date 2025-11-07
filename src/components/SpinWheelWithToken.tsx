@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useSounds } from "@/hooks/useSounds";
 
 interface Prize {
   id: string;
@@ -18,6 +19,7 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
+  const { playSpinStart, playSpinTicks, playWin, playClick } = useSounds();
 
   useEffect(() => {
     fetchPrizes();
@@ -42,6 +44,10 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
     if (isSpinning || !token) return;
 
     setIsSpinning(true);
+    
+    // Play spin sounds
+    playSpinStart();
+    playSpinTicks(4000);
 
     try {
       // Call the spin-prize edge function with the real token
@@ -61,6 +67,7 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
       // Wait for animation to complete
       setTimeout(() => {
         setIsSpinning(false);
+        playWin();
         onPrizeWon(data);
       }, 4000);
     } catch (error: any) {
@@ -132,7 +139,10 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
           })}
 
           <button
-            onClick={spinWheel}
+            onClick={() => {
+              playClick();
+              spinWheel();
+            }}
             disabled={isSpinning}
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-gold to-gold/80 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed text-gold-foreground font-bold text-2xl px-12 py-6 rounded-full shadow-lg transition-transform z-10"
           >

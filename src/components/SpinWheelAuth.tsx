@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useSounds } from "@/hooks/useSounds";
 
 interface Prize {
   id: string;
@@ -25,6 +26,7 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
+  const { playSpinStart, playSpinTicks, playWin, playClick } = useSounds();
 
   useEffect(() => {
     const fetchPrizes = async () => {
@@ -49,6 +51,10 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
 
     setIsSpinning(true);
     toast.loading("Spinning...");
+    
+    // Play spin sounds
+    playSpinStart();
+    playSpinTicks(4000);
 
     try {
       const { data, error } = await supabase.functions.invoke("spin-with-wallet", {
@@ -75,6 +81,7 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
       setTimeout(() => {
         setIsSpinning(false);
         toast.dismiss();
+        playWin();
         onPrizeWon({ name: wonPrize.name, emoji: wonPrize.emoji });
         onBalanceChange();
         toast.success(`Won: ${wonPrize.emoji} ${wonPrize.name}`);
@@ -161,7 +168,10 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
 
             {/* Center button */}
             <button
-              onClick={spinWheel}
+              onClick={() => {
+                playClick();
+                spinWheel();
+              }}
               disabled={isSpinning}
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-gold to-gold/70 text-background font-black text-xl md:text-2xl hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 z-10 glow-gold shadow-2xl"
             >

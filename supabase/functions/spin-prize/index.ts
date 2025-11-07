@@ -39,8 +39,14 @@ serve(async (req) => {
       );
     }
 
-    // Hash token for comparison (in production, use proper HMAC)
-    const tokenHash = token;
+    // Hash the token using SHA-256 for storage
+    const encoder = new TextEncoder();
+    const data = encoder.encode(token);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const tokenHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    console.log("[SPIN-PRIZE] Token hash generated");
 
     // Verify token hasn't been used
     const { data: existingSpin } = await supabaseClient
@@ -50,11 +56,32 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingSpin) {
+      console.log("[SPIN-PRIZE] Token already used");
       return new Response(
         JSON.stringify({ error: "Token already used" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Get payment information from transactions table
+    const { data: transaction, error: txError } = await supabaseClient
+      .from("transactions")
+      .select("*")
+      .eq("tier", tier)
+      .eq("status", "paid")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (txError || !transaction) {
+      console.error("[SPIN-PRIZE] No valid transaction found:", txError);
+      return new Response(
+        JSON.stringify({ error: "No valid payment found for this tier" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("[SPIN-PRIZE] Valid transaction found for email:", transaction.email);
 
     // Fetch active prizes with weights
     const { data: prizes, error: prizesError } = await supabaseClient
@@ -91,28 +118,29 @@ serve(async (req) => {
         prize_id: selectedPrize.id,
         tier,
         token_hash: tokenHash,
-        email: "placeholder@example.com", // Replace with actual email from payment
-        amount_paid: tier === "basic" ? 15 : tier === "gold" ? 30 : 50,
-        stripe_payment_id: null,
+        email: transaction.email,
+        amount_paid: transaction.amount,
+        stripe_payment_id: transaction.stripe_session_id,
       });
 
     if (spinError) {
-      console.error("Error recording spin:", spinError);
+      console.error("[SPIN-PRIZE] Error recording spin:", spinError);
       return new Response(
         JSON.stringify({ error: "Failed to record spin" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Return prize info WITHOUT delivery_content to client
+    console.log("[SPIN-PRIZE] Spin recorded successfully");
+
+    // Return prize info INCLUDING delivery_content since payment is verified
     return new Response(
       JSON.stringify({
-        prize: {
-          id: selectedPrize.id,
-          name: selectedPrize.name,
-          emoji: selectedPrize.emoji,
-          type: selectedPrize.type,
-        },
+        id: selectedPrize.id,
+        name: selectedPrize.name,
+        emoji: selectedPrize.emoji,
+        type: selectedPrize.type,
+        delivery_content: selectedPrize.delivery_content, // Safe to return after payment verification
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

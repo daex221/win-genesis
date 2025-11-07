@@ -37,7 +37,7 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
     fetchPrizes();
   });
 
-  const spinWheel = () => {
+  const spinWheel = async () => {
     if (isSpinning || prizes.length === 0) return;
 
     setIsSpinning(true);
@@ -48,12 +48,27 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
 
     setRotation(finalRotation);
 
-    // After animation completes (4 seconds)
-    setTimeout(() => {
+    // TODO: Replace with actual token from Stripe payment
+    const mockToken = `spin_${Date.now()}_${Math.random()}`;
+    const mockTier = "basic"; // TODO: Get from payment
+
+    try {
+      const { data, error } = await supabase.functions.invoke("spin-prize", {
+        body: { token: mockToken, tier: mockTier },
+      });
+
+      if (error) throw error;
+
+      // After animation completes (4 seconds)
+      setTimeout(() => {
+        setIsSpinning(false);
+        onPrizeWon({ name: data.prize.name, emoji: data.prize.emoji });
+      }, 4000);
+    } catch (error) {
+      console.error("Error spinning:", error);
+      toast.error("Failed to spin. Please try again.");
       setIsSpinning(false);
-      const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
-      onPrizeWon({ name: randomPrize.name, emoji: randomPrize.emoji });
-    }, 4000);
+    }
   };
 
   const segmentAngle = 360 / Math.max(prizes.length, 8);

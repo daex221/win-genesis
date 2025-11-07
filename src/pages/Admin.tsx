@@ -1,50 +1,87 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import AdminAnalytics from "@/components/AdminAnalytics";
 import PrizeManagement from "@/components/PrizeManagement";
+import { User } from "@supabase/supabase-js";
+import { toast } from "sonner";
 
 const Admin = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    if (password === "admin123") {
-      setIsAuthenticated(true);
-    } else {
-      alert("Incorrect password");
+  useEffect(() => {
+    checkAdminStatus();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await checkAdminStatus();
+        } else {
+          setIsAdmin(false);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const checkAdminStatus = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.user) {
+      navigate("/auth");
+      return;
     }
+
+    setUser(session.user);
+
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("app_role")
+      .eq("user_id", session.user.id)
+      .eq("app_role", "admin")
+      .maybeSingle();
+
+    if (error) {
+      toast.error("Error checking admin status");
+      setLoading(false);
+      return;
+    }
+
+    if (!data) {
+      toast.error("Access denied. Admin privileges required.");
+      navigate("/");
+      return;
+    }
+
+    setIsAdmin(true);
+    setLoading(false);
   };
 
-  if (!isAuthenticated) {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-background aurora-bg flex items-center justify-center px-4">
-        <Card className="max-w-md w-full p-8 bg-card">
-          <h1 className="text-3xl font-bold text-foreground mb-6 text-center">
-            Admin Dashboard
-          </h1>
-          <div className="space-y-4">
-            <Input
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleLogin()}
-              className="w-full"
-            />
-            <Button
-              onClick={handleLogin}
-              className="w-full bg-gradient-to-r from-primary to-primary/80"
-            >
-              LOGIN
-            </Button>
-          </div>
+      <div className="min-h-screen bg-background aurora-bg flex items-center justify-center">
+        <Card className="p-8 bg-card">
+          <p className="text-foreground">Verifying admin access...</p>
         </Card>
       </div>
     );
+  }
+
+  if (!isAdmin) {
+    return null;
   }
 
   return (
@@ -52,13 +89,22 @@ const Admin = () => {
       <div className="relative z-10 container mx-auto px-4 py-12">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-foreground">Admin Dashboard</h1>
-          <Button
-            onClick={() => navigate("/")}
-            variant="outline"
-            className="rounded-full"
-          >
-            ← Back to App
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => navigate("/")}
+              variant="outline"
+              className="rounded-full"
+            >
+              ← Back to App
+            </Button>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              className="rounded-full"
+            >
+              Logout
+            </Button>
+          </div>
         </div>
 
         <AdminAnalytics />

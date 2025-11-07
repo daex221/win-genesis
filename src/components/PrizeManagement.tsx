@@ -13,7 +13,6 @@ interface Prize {
   weight_basic: number;
   weight_gold: number;
   weight_vip: number;
-  delivery_content: string;
   active: boolean;
 }
 
@@ -23,7 +22,7 @@ const PrizeManagement = () => {
   const fetchPrizes = async () => {
     const { data, error } = await supabase
       .from("prizes")
-      .select("*")
+      .select("id, name, emoji, type, weight_basic, weight_gold, weight_vip, active")
       .order("created_at", { ascending: false });
 
     if (error) {

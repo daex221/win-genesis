@@ -103,8 +103,15 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
           }}
         />
 
-        {/* Rainbow Border */}
-        <div className="rainbow-border-thick rounded-full">
+        {/* Rainbow Border - Outer wrapper */}
+        <div 
+          className="rounded-full p-1 animate-pulse-glow"
+          style={{
+            background: "linear-gradient(90deg, hsl(220 90% 56%), hsl(280 90% 60%), hsl(330 90% 60%), hsl(50 95% 60%), hsl(145 95% 55%), hsl(185 95% 60%))",
+            backgroundSize: "300% 300%",
+            animation: "rainbow-border 3s ease infinite",
+          }}
+        >
           {/* Wheel */}
           <div
             className="relative w-full h-full rounded-full overflow-hidden bg-background"

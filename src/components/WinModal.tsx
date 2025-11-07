@@ -26,7 +26,14 @@ const WinModal = ({ isOpen, onClose, prize }: WinModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="border-0 p-0 max-w-md bg-transparent">
-        <div className="rainbow-border rounded-3xl">
+        <div 
+          className="rounded-3xl p-1"
+          style={{
+            background: "linear-gradient(90deg, hsl(220 90% 56%), hsl(280 90% 60%), hsl(330 90% 60%), hsl(50 95% 60%), hsl(145 95% 55%), hsl(185 95% 60%))",
+            backgroundSize: "300% 300%",
+            animation: "rainbow-border 3s ease infinite",
+          }}
+        >
           <div className="bg-background rounded-3xl p-8">
             {/* Confetti */}
             {confetti.map((piece) => (

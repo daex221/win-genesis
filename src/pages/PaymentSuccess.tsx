@@ -10,12 +10,13 @@ const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [verifying, setVerifying] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
-  const [tier, setTier] = useState<string | null>(null);
+  const [paymentType, setPaymentType] = useState<"wallet" | "tier">("wallet");
+  const [amount, setAmount] = useState<number>(0);
 
   useEffect(() => {
     const verifyPayment = async () => {
       const sessionId = searchParams.get("session_id");
+      const type = searchParams.get("type");
       
       if (!sessionId) {
         toast.error("No session ID found");
@@ -30,10 +31,15 @@ const PaymentSuccess = () => {
 
         if (error) throw error;
 
-        if (data?.verified && data?.token) {
-          setToken(data.token);
-          setTier(data.tier);
-          toast.success("Payment verified! Ready to spin!");
+        if (data?.verified) {
+          if (data.type === "wallet_topup") {
+            setPaymentType("wallet");
+            setAmount(data.amount);
+            toast.success("Wallet funded successfully!");
+          } else {
+            // Legacy tier purchase
+            setPaymentType("tier");
+          }
         } else {
           throw new Error("Payment verification failed");
         }
@@ -49,10 +55,8 @@ const PaymentSuccess = () => {
     verifyPayment();
   }, [searchParams, navigate]);
 
-  const handleSpin = () => {
-    if (token && tier) {
-      navigate(`/?token=${token}&tier=${tier}`);
-    }
+  const handleGoToSpin = () => {
+    navigate("/");
   };
 
   if (verifying) {
@@ -70,25 +74,28 @@ const PaymentSuccess = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="p-8 max-w-md w-full text-center glow-green">
-        <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
+        <CheckCircle className="w-16 h-16 mx-auto mb-4 text-primary" />
         <h1 className="text-3xl font-bold mb-2">Payment Successful!</h1>
         <p className="text-muted-foreground mb-6">
-          Your {tier?.toUpperCase()} tier payment has been confirmed.
+          {paymentType === "wallet" 
+            ? `$${amount} has been added to your wallet!` 
+            : "Your payment has been confirmed."
+          }
         </p>
         
-        <div className="bg-muted p-4 rounded-lg mb-6">
-          <p className="text-sm text-muted-foreground mb-2">Your Spin Token</p>
-          <code className="text-xs break-all bg-background p-2 rounded block">
-            {token}
-          </code>
-        </div>
+        {paymentType === "wallet" && (
+          <div className="bg-muted p-4 rounded-lg mb-6">
+            <p className="text-2xl font-bold text-primary">+${amount.toFixed(2)}</p>
+            <p className="text-sm text-muted-foreground">Added to your balance</p>
+          </div>
+        )}
 
         <Button
-          onClick={handleSpin}
+          onClick={handleGoToSpin}
           size="lg"
-          className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:scale-105 transition-transform font-bold text-lg py-6 rounded-full"
+          className="w-full bg-gradient-to-r from-primary to-secondary hover:scale-105 transition-transform font-bold text-lg py-6 rounded-full"
         >
-          SPIN THE WHEEL NOW! 🎉
+          START SPINNING! 🎉
         </Button>
 
         <Button

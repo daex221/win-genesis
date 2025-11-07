@@ -84,26 +84,32 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background aurora-bg flex items-center justify-center px-4">
-      <Card className="max-w-md w-full p-8 bg-card">
+      <Card className="max-w-md w-full p-8 bg-card border-border relative z-10">
         <h1 className="text-3xl font-bold text-foreground mb-6 text-center">
           {isLogin ? "Login" : "Sign Up"}
         </h1>
         <div className="space-y-4">
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full"
-          />
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleAuth()}
-            className="w-full"
-          />
+          <div>
+            <Input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-input text-foreground"
+              autoComplete="email"
+            />
+          </div>
+          <div>
+            <Input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleAuth()}
+              className="w-full bg-input text-foreground"
+              autoComplete={isLogin ? "current-password" : "new-password"}
+            />
+          </div>
           <Button
             onClick={handleAuth}
             disabled={loading}

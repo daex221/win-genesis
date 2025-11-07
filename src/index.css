@@ -8,7 +8,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Gaming theme - pure black with neon accents */
+    /* Supporterswin theme - black with neon green, cyan, and pink */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
 
@@ -18,19 +18,19 @@ All colors MUST be HSL.
     --popover: 0 0% 5%;
     --popover-foreground: 0 0% 100%;
 
-    /* Neon purple primary */
-    --primary: 271 91% 65%;
-    --primary-foreground: 0 0% 100%;
+    /* Bright neon green primary (from logo) */
+    --primary: 145 95% 55%;
+    --primary-foreground: 0 0% 0%;
 
-    /* Neon blue secondary */
-    --secondary: 217 91% 60%;
-    --secondary-foreground: 0 0% 100%;
+    /* Neon cyan secondary */
+    --secondary: 185 95% 60%;
+    --secondary-foreground: 0 0% 0%;
 
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 60%;
 
     /* Neon pink accent */
-    --accent: 330 81% 60%;
+    --accent: 325 90% 60%;
     --accent-foreground: 0 0% 100%;
 
     /* Gold/yellow for VIP */
@@ -38,7 +38,7 @@ All colors MUST be HSL.
     --gold-foreground: 0 0% 0%;
 
     /* Cyan for glows */
-    --cyan: 189 94% 43%;
+    --cyan: 185 95% 60%;
     --cyan-foreground: 0 0% 0%;
 
     --destructive: 0 84% 60%;
@@ -46,22 +46,22 @@ All colors MUST be HSL.
 
     --border: 0 0% 20%;
     --input: 0 0% 15%;
-    --ring: 271 91% 65%;
+    --ring: 145 95% 55%;
 
     --radius: 1rem;
 
-    /* Gradient definitions */
-    --gradient-aurora: linear-gradient(135deg, hsl(271 91% 65% / 0.3), hsl(217 91% 60% / 0.3), hsl(330 81% 60% / 0.3));
-    --gradient-primary: linear-gradient(135deg, hsl(271 91% 65%), hsl(217 91% 60%));
+    /* Gradient definitions with Supporterswin colors */
+    --gradient-aurora: linear-gradient(135deg, hsl(145 95% 55% / 0.3), hsl(185 95% 60% / 0.3), hsl(325 90% 60% / 0.3));
+    --gradient-primary: linear-gradient(135deg, hsl(145 95% 55%), hsl(185 95% 60%));
     --gradient-gold: linear-gradient(135deg, hsl(45 93% 58%), hsl(38 92% 50%));
-    --gradient-cyan-pink: linear-gradient(135deg, hsl(189 94% 43%), hsl(330 81% 60%));
+    --gradient-cyan-pink: linear-gradient(135deg, hsl(185 95% 60%), hsl(325 90% 60%));
+    --gradient-rainbow: linear-gradient(90deg, hsl(185 95% 60%), hsl(325 90% 60%), hsl(25 95% 60%), hsl(50 95% 60%));
     
-    /* Shadows and glows */
-    --glow-purple: 0 0 40px hsl(271 91% 65% / 0.5);
-    --glow-blue: 0 0 40px hsl(217 91% 60% / 0.5);
-    --glow-pink: 0 0 40px hsl(330 81% 60% / 0.5);
+    /* Shadows and glows with Supporterswin colors */
+    --glow-green: 0 0 40px hsl(145 95% 55% / 0.6);
+    --glow-cyan: 0 0 40px hsl(185 95% 60% / 0.6);
+    --glow-pink: 0 0 40px hsl(325 90% 60% / 0.6);
     --glow-gold: 0 0 40px hsl(45 93% 58% / 0.5);
-    --glow-cyan: 0 0 40px hsl(189 94% 43% / 0.5);
   }
 }
 
@@ -108,12 +108,12 @@ All colors MUST be HSL.
   }
 
   /* Neon glow effects */
-  .glow-purple {
-    box-shadow: var(--glow-purple);
+  .glow-green {
+    box-shadow: var(--glow-green);
   }
   
-  .glow-blue {
-    box-shadow: var(--glow-blue);
+  .glow-cyan {
+    box-shadow: var(--glow-cyan);
   }
   
   .glow-pink {
@@ -122,10 +122,6 @@ All colors MUST be HSL.
   
   .glow-gold {
     box-shadow: var(--glow-gold);
-  }
-  
-  .glow-cyan {
-    box-shadow: var(--glow-cyan);
   }
 
   /* Gradient text */

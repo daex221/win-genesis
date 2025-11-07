@@ -11,6 +11,67 @@ interface SpinRequest {
   tier: string;
 }
 
+// Helper function to convert hex string to ArrayBuffer
+function hexToBuffer(hex: string): ArrayBuffer {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes.buffer;
+}
+
+// Verify HMAC-signed token
+async function verifySecureToken(token: string, tier: string): Promise<{ valid: boolean; sessionId: string }> {
+  const SECRET = Deno.env.get("HMAC_SECRET_KEY");
+  if (!SECRET) {
+    throw new Error("HMAC_SECRET_KEY not configured");
+  }
+
+  const parts = token.split(':');
+  if (parts.length !== 4) {
+    return { valid: false, sessionId: "" };
+  }
+
+  const [sessionId, tokenTier, timestamp, signature] = parts;
+
+  // Verify tier matches
+  if (tokenTier !== tier) {
+    console.log("[SPIN-PRIZE] Tier mismatch");
+    return { valid: false, sessionId: "" };
+  }
+
+  // Check expiration (10 minutes)
+  const tokenAge = Date.now() - parseInt(timestamp);
+  if (tokenAge > 600000) {
+    console.log("[SPIN-PRIZE] Token expired");
+    return { valid: false, sessionId: "" };
+  }
+
+  // Verify HMAC signature
+  const payload = `${sessionId}:${tokenTier}:${timestamp}`;
+  
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"]
+  );
+
+  const valid = await crypto.subtle.verify(
+    "HMAC",
+    key,
+    hexToBuffer(signature),
+    new TextEncoder().encode(payload)
+  );
+
+  if (!valid) {
+    console.log("[SPIN-PRIZE] Invalid HMAC signature");
+  }
+
+  return { valid, sessionId };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -39,14 +100,26 @@ serve(async (req) => {
       );
     }
 
-    // Hash the token using SHA-256 for storage
+    console.log("[SPIN-PRIZE] Verifying token signature");
+
+    // Verify HMAC signature and expiration
+    const { valid, sessionId } = await verifySecureToken(token, tier);
+    
+    if (!valid) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired token" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("[SPIN-PRIZE] Token verified successfully");
+
+    // Hash the full token for replay prevention
     const encoder = new TextEncoder();
     const data = encoder.encode(token);
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const tokenHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-    console.log("[SPIN-PRIZE] Token hash generated");
 
     // Verify token hasn't been used
     const { data: existingSpin } = await supabaseClient
@@ -67,29 +140,28 @@ serve(async (req) => {
     const { data: transaction, error: txError } = await supabaseClient
       .from("transactions")
       .select("*")
+      .eq("stripe_session_id", sessionId)
       .eq("tier", tier)
       .eq("status", "paid")
-      .order("created_at", { ascending: false })
-      .limit(1)
       .maybeSingle();
 
     if (txError || !transaction) {
       console.error("[SPIN-PRIZE] No valid transaction found:", txError);
       return new Response(
-        JSON.stringify({ error: "No valid payment found for this tier" }),
+        JSON.stringify({ error: "No valid payment found" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     console.log("[SPIN-PRIZE] Valid transaction found for email:", transaction.email);
 
-    // Fetch active prizes with weights
-    const { data: prizes, error: prizesError } = await supabaseClient
-      .from("prizes")
+    // Fetch active prize metadata only (public data)
+    const { data: prizeMetadata, error: metadataError } = await supabaseClient
+      .from("prize_metadata")
       .select("*")
       .eq("active", true);
 
-    if (prizesError || !prizes || prizes.length === 0) {
+    if (metadataError || !prizeMetadata || prizeMetadata.length === 0) {
       return new Response(
         JSON.stringify({ error: "No prizes available" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -98,17 +170,32 @@ serve(async (req) => {
 
     // Weighted random selection based on tier
     const weightKey = `weight_${tier}` as "weight_basic" | "weight_gold" | "weight_vip";
-    const totalWeight = prizes.reduce((sum, p) => sum + (p[weightKey] || 0), 0);
+    const totalWeight = prizeMetadata.reduce((sum, p) => sum + (p[weightKey] || 0), 0);
     
     let random = Math.random() * totalWeight;
-    let selectedPrize = prizes[0];
+    let selectedPrize = prizeMetadata[0];
 
-    for (const prize of prizes) {
+    for (const prize of prizeMetadata) {
       random -= prize[weightKey] || 0;
       if (random <= 0) {
         selectedPrize = prize;
         break;
       }
+    }
+
+    // Fetch delivery content for the selected prize (using service role)
+    const { data: deliveryData, error: deliveryError } = await supabaseClient
+      .from("prize_delivery")
+      .select("delivery_content")
+      .eq("prize_id", selectedPrize.id)
+      .single();
+
+    if (deliveryError) {
+      console.error("[SPIN-PRIZE] Error fetching delivery content:", deliveryError);
+      return new Response(
+        JSON.stringify({ error: "Failed to retrieve prize details" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Record the spin (using service role, bypasses RLS)
@@ -140,7 +227,7 @@ serve(async (req) => {
         name: selectedPrize.name,
         emoji: selectedPrize.emoji,
         type: selectedPrize.type,
-        delivery_content: selectedPrize.delivery_content, // Safe to return after payment verification
+        delivery_content: deliveryData.delivery_content,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

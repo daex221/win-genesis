@@ -14,11 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
-      prizes: {
+      prize_delivery: {
+        Row: {
+          delivery_content: string
+          prize_id: string
+        }
+        Insert: {
+          delivery_content: string
+          prize_id: string
+        }
+        Update: {
+          delivery_content?: string
+          prize_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prize_delivery_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: true
+            referencedRelation: "prize_metadata"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prize_metadata: {
         Row: {
           active: boolean
           created_at: string
-          delivery_content: string
           emoji: string
           id: string
           name: string
@@ -30,7 +52,6 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
-          delivery_content: string
           emoji: string
           id?: string
           name: string
@@ -42,7 +63,6 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
-          delivery_content?: string
           emoji?: string
           id?: string
           name?: string
@@ -89,7 +109,7 @@ export type Database = {
             foreignKeyName: "spins_prize_id_fkey"
             columns: ["prize_id"]
             isOneToOne: false
-            referencedRelation: "prizes"
+            referencedRelation: "prize_metadata"
             referencedColumns: ["id"]
           },
         ]

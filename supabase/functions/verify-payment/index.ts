@@ -7,6 +7,41 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function to convert ArrayBuffer to hex string
+function bufferToHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// Generate HMAC-signed token
+async function generateSecureToken(sessionId: string, tier: string): Promise<string> {
+  const SECRET = Deno.env.get("HMAC_SECRET_KEY");
+  if (!SECRET) {
+    throw new Error("HMAC_SECRET_KEY not configured");
+  }
+
+  const timestamp = Date.now();
+  const payload = `${sessionId}:${tier}:${timestamp}`;
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(payload)
+  );
+
+  const signatureHex = bufferToHex(signature);
+  return `${payload}:${signatureHex}`;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -107,11 +142,13 @@ serve(async (req) => {
         }
       );
     } else {
-      // Legacy tier purchase (for backwards compatibility)
-      const token = `${sessionId}_${Date.now()}_${crypto.randomUUID()}`;
+      // Legacy tier purchase - generate HMAC-signed token
       const tier = session.metadata?.tier || "basic";
       const email = session.customer_details?.email || "";
       const amountPaid = session.amount_total ? session.amount_total / 100 : 0;
+
+      // Generate secure token with HMAC signature
+      const token = await generateSecureToken(sessionId, tier);
 
       const { error: txError } = await supabase
         .from("transactions")
@@ -126,6 +163,8 @@ serve(async (req) => {
       if (txError) {
         console.error("[VERIFY-PAYMENT] Error storing transaction:", txError);
       }
+
+      console.log("[VERIFY-PAYMENT] Secure token generated for tier purchase");
 
       return new Response(
         JSON.stringify({ 

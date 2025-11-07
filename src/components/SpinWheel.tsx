@@ -21,7 +21,7 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
   useState(() => {
     const fetchPrizes = async () => {
       const { data, error } = await supabase
-        .from("prizes")
+        .from("prize_metadata")
         .select("id, name, emoji")
         .eq("active", true)
         .limit(8);

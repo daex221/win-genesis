@@ -92,13 +92,13 @@ serve(async (req) => {
       );
     }
 
-    // Fetch active prizes with weights
-    const { data: prizes, error: prizesError } = await supabaseClient
-      .from("prizes")
+    // Fetch active prize metadata (public data)
+    const { data: prizeMetadata, error: metadataError } = await supabaseClient
+      .from("prize_metadata")
       .select("*")
       .eq("active", true);
 
-    if (prizesError || !prizes || prizes.length === 0) {
+    if (metadataError || !prizeMetadata || prizeMetadata.length === 0) {
       return new Response(
         JSON.stringify({ error: "No prizes available" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -107,17 +107,32 @@ serve(async (req) => {
 
     // Weighted random selection based on tier
     const weightKey = `weight_${tier}` as "weight_basic" | "weight_gold" | "weight_vip";
-    const totalWeight = prizes.reduce((sum, p) => sum + (p[weightKey] || 0), 0);
+    const totalWeight = prizeMetadata.reduce((sum, p) => sum + (p[weightKey] || 0), 0);
     
     let random = Math.random() * totalWeight;
-    let selectedPrize = prizes[0];
+    let selectedPrize = prizeMetadata[0];
 
-    for (const prize of prizes) {
+    for (const prize of prizeMetadata) {
       random -= prize[weightKey] || 0;
       if (random <= 0) {
         selectedPrize = prize;
         break;
       }
+    }
+
+    // Fetch delivery content for the selected prize (using service role)
+    const { data: deliveryData, error: deliveryError } = await supabaseClient
+      .from("prize_delivery")
+      .select("delivery_content")
+      .eq("prize_id", selectedPrize.id)
+      .single();
+
+    if (deliveryError) {
+      console.error("[SPIN-WITH-WALLET] Error fetching delivery content:", deliveryError);
+      return new Response(
+        JSON.stringify({ error: "Failed to retrieve prize details" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Deduct balance
@@ -170,7 +185,7 @@ serve(async (req) => {
           name: selectedPrize.name,
           emoji: selectedPrize.emoji,
           type: selectedPrize.type,
-          delivery_content: selectedPrize.delivery_content,
+          delivery_content: deliveryData.delivery_content,
         },
         newBalance: newBalance,
       }),

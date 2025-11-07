@@ -21,7 +21,7 @@ const PrizeManagement = () => {
 
   const fetchPrizes = async () => {
     const { data, error } = await supabase
-      .from("prizes")
+      .from("prize_metadata")
       .select("id, name, emoji, type, weight_basic, weight_gold, weight_vip, active")
       .order("created_at", { ascending: false });
 
@@ -40,7 +40,7 @@ const PrizeManagement = () => {
 
   const toggleActive = async (id: string, currentActive: boolean) => {
     const { error } = await supabase
-      .from("prizes")
+      .from("prize_metadata")
       .update({ active: !currentActive })
       .eq("id", id);
 

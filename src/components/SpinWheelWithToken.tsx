@@ -26,7 +26,7 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
   const fetchPrizes = async () => {
     try {
       const { data, error } = await supabase
-        .from("prizes")
+        .from("prize_metadata")
         .select("id, name, emoji")
         .eq("active", true);
 

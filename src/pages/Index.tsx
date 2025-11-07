@@ -5,6 +5,7 @@ import SpinWheelWithToken from "@/components/SpinWheelWithToken";
 import PricingCards from "@/components/PricingCards";
 import WinModal from "@/components/WinModal";
 import { NavLink } from "@/components/NavLink";
+import supporterswinLogo from "@/assets/supporterswin-logo.jpg";
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -32,9 +33,7 @@ const Index = () => {
     <div className="min-h-screen bg-background aurora-bg">
       <header className="bg-card border-b border-border sticky top-0 z-50 backdrop-blur-sm">
         <nav className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-gold bg-clip-text text-transparent">
-            PrizeSpin
-          </h1>
+          <img src={supporterswinLogo} alt="Supporterswin" className="h-12 w-auto" />
           <div className="flex gap-4">
             <NavLink to="/auth">Sign In</NavLink>
             <NavLink to="/admin">Admin</NavLink>

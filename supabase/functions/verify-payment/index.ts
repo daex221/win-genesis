@@ -37,53 +37,109 @@ serve(async (req) => {
 
     console.log("[VERIFY-PAYMENT] Payment verified for session:", sessionId);
 
-    // Generate a secure token using crypto API
-    const tokenData = `${sessionId}_${Date.now()}_${crypto.randomUUID()}`;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(tokenData);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const token = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-    // Get tier from session metadata
-    const tier = session.metadata?.tier || "basic";
-    const email = session.customer_details?.email || "";
-    const amountPaid = session.amount_total ? session.amount_total / 100 : 0;
-
-    // Store transaction in database using service role key
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { error: txError } = await supabase
-      .from("transactions")
-      .insert({
-        stripe_session_id: sessionId,
-        email: email,
-        tier: tier,
-        amount: amountPaid,
-        status: "paid",
-      });
+    // Check if this is a wallet top-up
+    if (session.metadata?.type === "wallet_topup") {
+      const userId = session.metadata.user_id;
+      const amount = parseFloat(session.metadata.amount || "0");
+      const email = session.customer_details?.email || "";
 
-    if (txError) {
-      console.error("[VERIFY-PAYMENT] Error storing transaction:", txError);
-    }
+      console.log("[VERIFY-PAYMENT] Processing wallet top-up for user:", userId);
 
-    console.log("[VERIFY-PAYMENT] Token generated successfully");
+      // Get or create wallet
+      let { data: wallet, error: walletError } = await supabase
+        .from("wallets")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    return new Response(
-      JSON.stringify({ 
-        token,
-        tier,
-        email,
-        verified: true 
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
+      if (walletError && walletError.code !== "PGRST116") {
+        throw walletError;
       }
-    );
+
+      if (!wallet) {
+        const { data: newWallet, error: createError } = await supabase
+          .from("wallets")
+          .insert({ user_id: userId, balance: amount })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        wallet = newWallet;
+      } else {
+        // Update balance
+        const newBalance = Number(wallet.balance) + amount;
+        const { error: updateError } = await supabase
+          .from("wallets")
+          .update({ balance: newBalance })
+          .eq("id", wallet.id);
+
+        if (updateError) throw updateError;
+      }
+
+      // Record transaction
+      await supabase
+        .from("wallet_transactions")
+        .insert({
+          wallet_id: wallet.id,
+          user_id: userId,
+          amount: amount,
+          type: "credit",
+          description: `Wallet top-up via Stripe`,
+          stripe_payment_id: sessionId,
+        });
+
+      console.log("[VERIFY-PAYMENT] Wallet top-up successful");
+
+      return new Response(
+        JSON.stringify({ 
+          verified: true,
+          type: "wallet_topup",
+          amount
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    } else {
+      // Legacy tier purchase (for backwards compatibility)
+      const token = `${sessionId}_${Date.now()}_${crypto.randomUUID()}`;
+      const tier = session.metadata?.tier || "basic";
+      const email = session.customer_details?.email || "";
+      const amountPaid = session.amount_total ? session.amount_total / 100 : 0;
+
+      const { error: txError } = await supabase
+        .from("transactions")
+        .insert({
+          stripe_session_id: sessionId,
+          email: email,
+          tier: tier,
+          amount: amountPaid,
+          status: "paid",
+        });
+
+      if (txError) {
+        console.error("[VERIFY-PAYMENT] Error storing transaction:", txError);
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          token,
+          tier,
+          email,
+          verified: true 
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
   } catch (error) {
     console.error("[VERIFY-PAYMENT] Error:", error);
     return new Response(

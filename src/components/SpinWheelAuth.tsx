@@ -66,6 +66,45 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
     }
   }, [prizes]);
 
+  const sendPrizeWebhook = async (prizeData: { name: string; emoji: string }) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const payload = {
+        userId: user?.id || 'unknown',
+        email: user?.email || '',
+        phone: user?.user_metadata?.phone || '',
+        telegram: user?.user_metadata?.telegram || '',
+        instagram: user?.user_metadata?.instagram || '',
+        prizeWon: prizeData.name,
+        tier: tier,
+        spinCost: SPIN_COSTS[tier],
+        transactionId: `spin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString()
+      };
+
+      const auth = btoa('daevo:12345678');
+      
+      const response = await fetch('https://daex2212.app.n8n.cloud/webhook/prize-delivery', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        toast.success('🎁 Prize is being delivered!');
+      } else {
+        console.error('Webhook response not OK:', response.status);
+      }
+    } catch (error) {
+      console.error('Webhook error:', error);
+      // Don't show error to user, prize still won
+    }
+  };
+
   const drawWheel = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -182,10 +221,13 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
 
       setRotation(finalRotation);
 
-      setTimeout(() => {
+      setTimeout(async () => {
         setIsSpinning(false);
         toast.dismiss();
         playWin();
+        
+        // Send webhook notification
+        await sendPrizeWebhook({ name: wonPrize.name, emoji: wonPrize.emoji });
         
         // Trigger confetti
         confetti({

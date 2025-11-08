@@ -122,7 +122,7 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
     const segmentAngle = 360 / prizes.length;
     const targetAngle = randomPrizeIndex * segmentAngle + segmentAngle / 2;
     const spins = 3 + Math.random() * 2; // 3-5 full rotations
-    const finalRotation = rotation + spins * 360 + (360 - targetAngle);
+    const finalRotation = rotation + spins * 360 + (270 - targetAngle);
 
     setRotation(finalRotation);
 

@@ -122,14 +122,28 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
 
     // Calculate rotation to land on the selected prize
     const segmentAngle = 360 / prizes.length;
-    // Prize center angle: where the center of this prize segment is on the canvas
-    const prizeCenterAngle = randomPrizeIndex * segmentAngle + segmentAngle / 2;
-    // The pointer is at top (270° in canvas coordinates, since 0° is right/3 o'clock)
-    // We want to rotate so the prize center ends up at 270°
+    
+    // Canvas draws first segment starting at 0° (right/3 o'clock)
+    // but our pointer is at top (270° in canvas terms)
+    const prizeCenterAngle = randomPrizeIndex * segmentAngle + (segmentAngle / 2);
+    
+    // To align prize with pointer at top (270°)
     const targetAngle = 270 - prizeCenterAngle;
-    // Add extra full rotations for effect
-    const spins = 3 + Math.random() * 2;
-    const finalRotation = rotation + (targetAngle - (rotation % 360)) + spins * 360;
+    
+    // Normalize current rotation to 0-360 range
+    const currentNormalizedRotation = rotation % 360;
+    
+    // Calculate shortest path to target
+    let rotationDelta = targetAngle - currentNormalizedRotation;
+    
+    // Make it rotate in the positive direction
+    if (rotationDelta < 0) {
+      rotationDelta += 360;
+    }
+    
+    // Add extra full rotations for effect (3-5 full spins)
+    const extraSpins = 3 + Math.floor(Math.random() * 3);
+    const finalRotation = rotation + rotationDelta + (extraSpins * 360);
 
     setRotation(finalRotation);
 

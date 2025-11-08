@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSounds } from "@/hooks/useSounds";
@@ -18,7 +18,13 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
   const [rotation, setRotation] = useState(0);
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [musicStarted, setMusicStarted] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playSpinStart, playSpinTicks, playWin, playClick, playBackgroundMusic } = useSounds();
+
+  const colors = [
+    "#ec4899", "#3b82f6", "#8b5cf6", "#06b6d4",
+    "#10b981", "#f59e0b", "#ef4444", "#fbbf24"
+  ];
 
   // Fetch prizes on mount
   useEffect(() => {
@@ -39,6 +45,65 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
 
     fetchPrizes();
   }, []);
+
+  // Draw wheel when prizes change
+  useEffect(() => {
+    if (prizes.length > 0 && canvasRef.current) {
+      drawWheel();
+    }
+  }, [prizes]);
+
+  const drawWheel = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = canvas.width / 2 - 10;
+    const sliceAngle = (2 * Math.PI) / prizes.length;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    prizes.forEach((prize, index) => {
+      const startAngle = index * sliceAngle;
+      const endAngle = startAngle + sliceAngle;
+
+      // Draw slice
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fillStyle = colors[index % colors.length];
+      ctx.fill();
+
+      // Draw border
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Draw emoji and text
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(startAngle + sliceAngle / 2);
+      ctx.textAlign = "center";
+      
+      // Draw emoji
+      ctx.font = "32px Arial";
+      ctx.fillText(prize.emoji, radius / 1.7, -10);
+      
+      // Draw prize name
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 14px Arial";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+      ctx.shadowBlur = 4;
+      ctx.fillText(prize.name, radius / 1.7, 15);
+      
+      ctx.restore();
+    });
+  };
 
   const spinWheel = () => {
     if (isSpinning || prizes.length === 0) return;
@@ -70,21 +135,8 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
     }, 4000);
   };
 
-  const segmentAngle = 360 / Math.max(prizes.length, 8);
-  const colors = [
-    "hsl(var(--primary))",
-    "hsl(var(--secondary))",
-    "hsl(var(--accent))",
-    "hsl(var(--gold))",
-    "hsl(var(--cyan))",
-    "hsl(271 91% 50%)",
-    "hsl(217 91% 50%)",
-    "hsl(330 81% 50%)",
-  ];
-
   return (
     <div className="relative">
-      {/* Wheel Container */}
       <div className="relative w-[320px] h-[320px] md:w-[450px] md:h-[450px]">
         {/* Triangle Pointer */}
         <div
@@ -92,76 +144,49 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
           style={{
             borderLeft: "15px solid transparent",
             borderRight: "15px solid transparent",
-            borderTop: "25px solid hsl(185 95% 60%)",
-            filter: "drop-shadow(0 0 8px hsl(185 95% 60%))",
+            borderTop: "25px solid #fbbf24",
+            filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3))",
           }}
         />
 
-        {/* Rainbow Border - Outer wrapper */}
+        {/* Wheel wrapper with glow */}
         <div 
-          className="w-full h-full rounded-full animate-pulse-glow"
+          className="w-full h-full rounded-full"
           style={{
-            background: "linear-gradient(90deg, hsl(220 90% 56%), hsl(280 90% 60%), hsl(330 90% 60%), hsl(50 95% 60%), hsl(145 95% 55%), hsl(185 95% 60%))",
-            backgroundSize: "300% 300%",
-            animation: "rainbow-border 3s ease infinite",
-            padding: "4px",
+            boxShadow: `
+              0 0 0 12px rgba(168, 85, 247, 0.3),
+              0 0 0 24px rgba(236, 72, 153, 0.2),
+              0 20px 60px rgba(0, 0, 0, 0.5)
+            `,
           }}
         >
-          {/* Wheel */}
-          <div
-            className="relative rounded-full overflow-hidden bg-background"
+          {/* Canvas wheel */}
+          <canvas
+            ref={canvasRef}
+            width={450}
+            height={450}
+            className="w-full h-full rounded-full"
             style={{
-              width: "calc(100% - 8px)",
-              height: "calc(100% - 8px)",
               transform: `rotate(${rotation}deg)`,
               transition: isSpinning ? "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
             }}
-          >
-            {prizes.map((prize, index) => (
-              <div
-                key={prize.id}
-                className="absolute w-1/2 h-1/2 origin-bottom-right"
-                style={{
-                  transform: `rotate(${index * segmentAngle}deg) skewY(${-90 + segmentAngle}deg)`,
-                  transformOrigin: "bottom right",
-                  left: "50%",
-                  top: "50%",
-                  backgroundColor: colors[index % colors.length],
-                  clipPath: "polygon(0 0, 100% 0, 100% 100%)",
-                }}
-              >
-                <div
-                  className="absolute inset-0 flex items-start justify-center pt-8"
-                  style={{
-                    transform: `skewY(${90 - segmentAngle}deg) rotate(${segmentAngle / 2}deg)`,
-                  }}
-                >
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="text-2xl md:text-3xl">{prize.emoji}</div>
-                    <div className="text-xs md:text-sm font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-tight text-center px-1 max-w-[80px]">
-                      {prize.name}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          />
 
-            {/* Center Button */}
-            <button
-              onClick={() => {
-                playClick();
-                if (!musicStarted) {
-                  playBackgroundMusic();
-                  setMusicStarted(true);
-                }
-                spinWheel();
-              }}
-              disabled={isSpinning}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-gold to-gold/70 text-background font-black text-xl md:text-2xl hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 z-10 glow-gold shadow-2xl"
-            >
-              {isSpinning ? "..." : "SPIN"}
-            </button>
-          </div>
+          {/* Center Button */}
+          <button
+            onClick={() => {
+              playClick();
+              if (!musicStarted) {
+                playBackgroundMusic();
+                setMusicStarted(true);
+              }
+              spinWheel();
+            }}
+            disabled={isSpinning}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-[#fbbf24] to-[#f59e0b] text-background font-black text-xl md:text-2xl hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 z-10 shadow-2xl border-4 border-background"
+          >
+            {isSpinning ? "..." : "SPIN"}
+          </button>
         </div>
       </div>
     </div>

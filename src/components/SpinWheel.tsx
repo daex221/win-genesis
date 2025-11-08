@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSounds } from "@/hooks/useSounds";
@@ -21,7 +21,7 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
   const { playSpinStart, playSpinTicks, playWin, playClick, playBackgroundMusic } = useSounds();
 
   // Fetch prizes on mount
-  useState(() => {
+  useEffect(() => {
     const fetchPrizes = async () => {
       const { data, error } = await supabase
         .from("prize_metadata")
@@ -38,7 +38,7 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
     };
 
     fetchPrizes();
-  });
+  }, []);
 
   const spinWheel = () => {
     if (isSpinning || prizes.length === 0) return;

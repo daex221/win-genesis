@@ -37,7 +37,7 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
 
   useEffect(() => {
     const fetchPrizes = async () => {
-      const { data, error } = await supabase.from("prize_metadata").select("id, name, emoji").eq("active", true);
+      const { data, error } = await supabase.from("prize_metadata").select("id, name, emoji").eq("active", true).order("id");
       if (error) {
         console.error("Error fetching prizes:", error);
         return;

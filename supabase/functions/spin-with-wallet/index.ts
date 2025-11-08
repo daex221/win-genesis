@@ -96,7 +96,8 @@ serve(async (req) => {
     const { data: prizeMetadata, error: metadataError } = await supabaseClient
       .from("prize_metadata")
       .select("*")
-      .eq("active", true);
+      .eq("active", true)
+      .order("id");
 
     if (metadataError || !prizeMetadata || prizeMetadata.length === 0) {
       return new Response(

@@ -33,6 +33,7 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
         .from("prize_metadata")
         .select("id, name, emoji")
         .eq("active", true)
+        .order("id")
         .limit(8);
 
       if (error) {

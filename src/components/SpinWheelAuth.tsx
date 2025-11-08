@@ -146,24 +146,27 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
               return (
                 <div
                   key={prize.id}
-                  className="absolute w-1/2 h-1/2 origin-bottom-right flex items-center justify-center"
+                  className="absolute w-1/2 h-1/2 origin-bottom-right"
                   style={{
                     transform: `rotate(${index * segmentAngle}deg) skewY(${-90 + segmentAngle}deg)`,
                     transformOrigin: "bottom right",
                     left: "50%",
                     top: "50%",
                     backgroundColor: colors[index % colors.length],
+                    clipPath: "polygon(0 0, 100% 0, 100% 100%)",
                   }}
                 >
                   <div
-                    className="flex flex-col items-center gap-1"
+                    className="absolute inset-0 flex items-start justify-center pt-8"
                     style={{
                       transform: `skewY(${90 - segmentAngle}deg) rotate(${segmentAngle / 2}deg)`,
                     }}
                   >
-                    <div className="text-2xl md:text-3xl">{prize.emoji}</div>
-                    <div className="text-xs md:text-sm font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-tight text-center px-1">
-                      {prize.name}
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="text-2xl md:text-3xl">{prize.emoji}</div>
+                      <div className="text-xs md:text-sm font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-tight text-center px-1 max-w-[80px]">
+                        {prize.name}
+                      </div>
                     </div>
                   </div>
                 </div>

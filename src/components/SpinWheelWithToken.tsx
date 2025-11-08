@@ -132,8 +132,8 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
                       transform: `rotate(${segmentAngle / 2}deg)`,
                     }}
                   >
-                    <div className="text-3xl">{prize.emoji}</div>
-                    <div className="text-xs font-bold text-white/90 leading-tight text-center">
+                    <div className="text-3xl md:text-4xl">{prize.emoji}</div>
+                    <div className="text-sm md:text-base font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-tight text-center px-2">
                       {prize.name}
                     </div>
                   </div>

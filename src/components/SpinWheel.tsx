@@ -130,13 +130,13 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
                 }}
               >
                 <div
-                  className="flex flex-col items-center gap-0.5"
+                  className="flex flex-col items-center gap-1"
                   style={{
                     transform: `skewY(${90 - segmentAngle}deg) rotate(${segmentAngle / 2}deg)`,
                   }}
                 >
-                  <div className="text-xl md:text-2xl">{prize.emoji}</div>
-                  <div className="text-[10px] md:text-xs font-bold text-background/90 leading-tight text-center">
+                  <div className="text-2xl md:text-3xl">{prize.emoji}</div>
+                  <div className="text-xs md:text-sm font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-tight text-center px-1">
                     {prize.name}
                   </div>
                 </div>

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSounds } from "@/hooks/useSounds";
+import confetti from "canvas-confetti";
+import { MessageCircle, Sparkles, Camera, Crown, Gift, Video, Zap } from "lucide-react";
 
 interface Prize {
   id: string;
@@ -34,6 +36,17 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
     "#ec4899", "#3b82f6", "#8b5cf6", "#06b6d4",
     "#10b981", "#f59e0b", "#ef4444", "#fbbf24"
   ];
+
+  const prizeIcons: { [key: string]: any } = {
+    "Priority DM Access": MessageCircle,
+    "Custom Shout Out": Sparkles,
+    "Secret Photo Drop": Camera,
+    "Exclusive Access": Crown,
+    "Merch Discount": Gift,
+    "Mystery Video Clip": Video,
+    "Voice Note": MessageCircle,
+    "Bonus Spin": Zap,
+  };
 
   useEffect(() => {
     const fetchPrizes = async () => {
@@ -87,14 +100,16 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
       ctx.rotate(startAngle + sliceAngle / 2);
       ctx.textAlign = "center";
       
-      ctx.font = "32px Arial";
-      ctx.fillText(prize.emoji, radius / 1.7, -10);
+      // Draw emoji (keeping for fallback)
+      ctx.font = "28px Arial";
+      ctx.fillText(prize.emoji, radius / 1.7, -5);
       
+      // Draw prize name
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 14px Arial";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-      ctx.shadowBlur = 4;
-      ctx.fillText(prize.name, radius / 1.7, 15);
+      ctx.font = "bold 13px Arial";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+      ctx.shadowBlur = 6;
+      ctx.fillText(prize.name, radius / 1.7, 18);
       
       ctx.restore();
     });
@@ -151,6 +166,15 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
         setIsSpinning(false);
         toast.dismiss();
         playWin();
+        
+        // Trigger confetti
+        confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.6 },
+          colors: ['#00D9FF', '#FFD700', '#FF006E', '#7B2CBF']
+        });
+        
         onPrizeWon({ name: wonPrize.name, emoji: wonPrize.emoji });
         onBalanceChange();
         toast.success(`Won: ${wonPrize.emoji} ${wonPrize.name}`);
@@ -166,22 +190,24 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
   return (
     <div className="flex flex-col items-center gap-6">
       <div className="relative w-[320px] h-[320px] md:w-[450px] md:h-[450px]">
+        {/* Triangle Pointer */}
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 w-0 h-0 z-20"
           style={{
-            borderLeft: "15px solid transparent",
-            borderRight: "15px solid transparent",
-            borderTop: "25px solid #fbbf24",
-            filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3))",
+            borderLeft: "20px solid transparent",
+            borderRight: "20px solid transparent",
+            borderTop: "30px solid #FFD700",
+            filter: "drop-shadow(0 4px 10px rgba(255, 215, 0, 0.8))",
           }}
         />
 
+        {/* Wheel with glow */}
         <div 
-          className="w-full h-full rounded-full"
+          className="w-full h-full rounded-full animate-pulse-glow"
           style={{
             boxShadow: `
-              0 0 0 12px rgba(168, 85, 247, 0.3),
-              0 0 0 24px rgba(236, 72, 153, 0.2),
+              0 0 40px rgba(0, 217, 255, 0.4),
+              0 0 80px rgba(0, 217, 255, 0.2),
               0 20px 60px rgba(0, 0, 0, 0.5)
             `,
           }}
@@ -197,6 +223,7 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
             }}
           />
 
+          {/* Center Spin Button */}
           <button
             onClick={() => {
               playClick();
@@ -207,18 +234,25 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
               spinWheel();
             }}
             disabled={isSpinning}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-[#fbbf24] to-[#f59e0b] text-background font-black text-xl md:text-2xl hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 z-10 shadow-2xl border-4 border-background"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 text-white font-black text-2xl md:text-3xl hover:scale-110 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 z-10 border-4 border-white min-h-[44px] min-w-[44px] touch-manipulation"
+            style={{
+              boxShadow: "0 0 30px rgba(255, 215, 0, 0.6), 0 10px 40px rgba(0, 0, 0, 0.4)"
+            }}
           >
             {isSpinning ? "..." : "SPIN"}
           </button>
         </div>
       </div>
 
-      <div className="text-center">
-        <p className="text-foreground text-lg font-semibold">
+      {/* Balance info */}
+      <div className="text-center bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 px-8 py-4">
+        <p className="text-white text-lg font-semibold mb-1">
           {tier.toUpperCase()} Tier - ${SPIN_COSTS[tier]} per spin
         </p>
-        <p className="text-muted-foreground">Your Balance: ${balance.toFixed(2)}</p>
+        <p className="text-5xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+          ${balance.toFixed(2)}
+        </p>
+        <p className="text-white/60 text-sm mt-1">Your Balance</p>
       </div>
     </div>
   );

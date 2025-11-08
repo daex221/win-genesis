@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Wallet, Plus } from "lucide-react";
+import { Gem, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -109,41 +109,43 @@ const WalletBalance = ({ onBalanceUpdate }: WalletBalanceProps) => {
   };
 
   return (
-    <Card className="bg-card border-border p-6 glow-green">
+    <Card className="bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 backdrop-blur-lg border-white/10 rounded-2xl p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary/10 rounded-full">
-            <Wallet className="w-6 h-6 text-primary" />
+          <div className="p-3 bg-emerald-500/20 rounded-xl">
+            <Gem className="w-6 h-6 text-emerald-400" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Wallet Balance</p>
-            <p className="text-2xl font-bold text-foreground">${balance.toFixed(2)}</p>
+            <p className="text-sm text-white/60">Wallet Balance</p>
+            <p className="text-4xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">${balance.toFixed(2)}</p>
           </div>
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-primary to-secondary hover:scale-105 transition-transform">
+            <Button className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-bold shadow-[0_0_20px_rgba(16,185,129,0.3)] min-h-[44px]">
               <Plus className="w-4 h-4 mr-2" />
               Add Funds
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border">
+          <DialogContent className="bg-[#0A0E27] border-white/10">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Add Funds to Wallet</DialogTitle>
-              <DialogDescription className="text-muted-foreground">
+              <DialogTitle className="text-white text-xl font-bold">Add Funds to Wallet</DialogTitle>
+              <DialogDescription className="text-white/60">
                 Choose an amount to add to your wallet. Minimum $10.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 {["15", "30", "50", "100"].map((amount) => (
                   <Button
                     key={amount}
                     variant="outline"
                     onClick={() => setAddAmount(amount)}
-                    className={`${
-                      addAmount === amount ? "border-primary bg-primary/10" : ""
+                    className={`min-h-[44px] ${
+                      addAmount === amount
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 border-cyan-400 text-white"
+                        : "bg-white/5 border-white/10 text-white hover:bg-white/10"
                     }`}
                   >
                     ${amount}
@@ -151,20 +153,20 @@ const WalletBalance = ({ onBalanceUpdate }: WalletBalanceProps) => {
                 ))}
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-2 block">Custom Amount</label>
+                <label className="text-sm text-white/80 mb-2 block">Custom Amount</label>
                 <Input
                   type="number"
                   min="10"
                   value={addAmount}
                   onChange={(e) => setAddAmount(e.target.value)}
                   placeholder="Enter amount"
-                  className="bg-input border-border text-foreground"
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <Button
                 onClick={handleAddFunds}
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-primary to-secondary hover:scale-105 transition-transform"
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold shadow-[0_0_20px_rgba(0,217,255,0.4)] min-h-[44px]"
               >
                 {loading ? "Processing..." : `Add $${addAmount} to Wallet`}
               </Button>

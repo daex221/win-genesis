@@ -176,6 +176,54 @@ All colors MUST be HSL.
     animation: confetti-fall 3s linear;
   }
 
+  @keyframes float-up {
+    0% {
+      transform: translateY(100vh);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.4;
+    }
+    90% {
+      opacity: 0.4;
+    }
+    100% {
+      transform: translateY(-100vh);
+      opacity: 0;
+    }
+  }
+
+  .animate-float-up {
+    animation: float-up linear infinite;
+  }
+
+  @keyframes pulse-glow-effect {
+    0%, 100% {
+      filter: drop-shadow(0 0 20px rgba(0, 217, 255, 0.4));
+    }
+    50% {
+      filter: drop-shadow(0 0 40px rgba(0, 217, 255, 0.6));
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow-effect 2s ease-in-out infinite;
+  }
+
+  @keyframes gradient-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-gradient-text {
+    background-size: 200% auto;
+    animation: gradient-shift 3s ease-in-out infinite;
+  }
+
   /* Rainbow border animation */
   @keyframes rainbow-border {
     0% {

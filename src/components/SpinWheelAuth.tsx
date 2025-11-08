@@ -130,11 +130,20 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
       const wonPrize = data.prize;
       const prizeIndex = prizes.findIndex((p) => p.id === wonPrize.id);
       
+      console.log("=== SPIN DEBUG ===");
+      console.log("All prizes:", prizes.map((p, i) => `${i}: ${p.name}`));
+      console.log("Won prize:", wonPrize.name, "ID:", wonPrize.id);
+      console.log("Prize index in array:", prizeIndex);
+      
       // Calculate rotation to land on the prize
       const segmentAngle = 360 / prizes.length;
       const targetAngle = prizeIndex * segmentAngle + segmentAngle / 2;
       const spins = 3 + Math.random() * 2;
       const finalRotation = rotation + spins * 360 + (270 - targetAngle);
+      
+      console.log("Segment angle:", segmentAngle);
+      console.log("Target angle for pointer:", targetAngle);
+      console.log("Final rotation:", finalRotation);
 
       setRotation(finalRotation);
 

@@ -110,6 +110,8 @@ serve(async (req) => {
     const weightKey = `weight_${tier}` as "weight_basic" | "weight_gold" | "weight_vip";
     const totalWeight = prizeMetadata.reduce((sum, p) => sum + (p[weightKey] || 0), 0);
     
+    console.log("[SPIN-WITH-WALLET] Prize order:", prizeMetadata.map((p, i) => `${i}: ${p.name} (${p.id.substring(0, 8)})`));
+    
     let random = Math.random() * totalWeight;
     let selectedPrize = prizeMetadata[0];
 
@@ -120,6 +122,9 @@ serve(async (req) => {
         break;
       }
     }
+    
+    const selectedIndex = prizeMetadata.findIndex(p => p.id === selectedPrize.id);
+    console.log("[SPIN-WITH-WALLET] Selected prize:", selectedPrize.name, "at index:", selectedIndex);
 
     // Fetch delivery content for the selected prize (using service role)
     const { data: deliveryData, error: deliveryError } = await supabaseClient

@@ -26,7 +26,8 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
-  const { playSpinStart, playSpinTicks, playWin, playClick } = useSounds();
+  const [musicStarted, setMusicStarted] = useState(false);
+  const { playSpinStart, playSpinTicks, playWin, playClick, playBackgroundMusic } = useSounds();
 
   useEffect(() => {
     const fetchPrizes = async () => {
@@ -155,12 +156,15 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
                   }}
                 >
                   <div
-                    className="text-2xl md:text-3xl font-bold"
+                    className="flex flex-col items-center gap-0.5"
                     style={{
                       transform: `skewY(${90 - segmentAngle}deg) rotate(${segmentAngle / 2}deg)`,
                     }}
                   >
-                    {prize.emoji}
+                    <div className="text-xl md:text-2xl">{prize.emoji}</div>
+                    <div className="text-[10px] md:text-xs font-bold text-background/90 leading-tight text-center">
+                      {prize.name}
+                    </div>
                   </div>
                 </div>
               );
@@ -170,6 +174,10 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
             <button
               onClick={() => {
                 playClick();
+                if (!musicStarted) {
+                  playBackgroundMusic();
+                  setMusicStarted(true);
+                }
                 spinWheel();
               }}
               disabled={isSpinning}

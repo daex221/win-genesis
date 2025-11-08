@@ -19,7 +19,8 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
-  const { playSpinStart, playSpinTicks, playWin, playClick } = useSounds();
+  const [musicStarted, setMusicStarted] = useState(false);
+  const { playSpinStart, playSpinTicks, playWin, playClick, playBackgroundMusic } = useSounds();
 
   useEffect(() => {
     fetchPrizes();
@@ -126,12 +127,15 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
                   className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-start justify-center pt-8`}
                 >
                   <div
-                    className="text-4xl"
+                    className="flex flex-col items-center gap-1"
                     style={{
                       transform: `rotate(${segmentAngle / 2}deg)`,
                     }}
                   >
-                    {prize.emoji}
+                    <div className="text-3xl">{prize.emoji}</div>
+                    <div className="text-xs font-bold text-white/90 leading-tight text-center">
+                      {prize.name}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -141,6 +145,10 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
           <button
             onClick={() => {
               playClick();
+              if (!musicStarted) {
+                playBackgroundMusic();
+                setMusicStarted(true);
+              }
               spinWheel();
             }}
             disabled={isSpinning}

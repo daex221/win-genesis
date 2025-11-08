@@ -107,11 +107,55 @@ export const useSounds = () => {
     scheduleTick();
   }, [playTick]);
 
+  const playBackgroundMusic = useCallback(() => {
+    const ctx = getAudioContext();
+    
+    // Create a simple looping background melody
+    const melody = [
+      { freq: 523.25, duration: 0.4 }, // C5
+      { freq: 659.25, duration: 0.4 }, // E5
+      { freq: 783.99, duration: 0.4 }, // G5
+      { freq: 659.25, duration: 0.4 }, // E5
+      { freq: 698.46, duration: 0.6 }, // F5
+      { freq: 587.33, duration: 0.6 }, // D5
+    ];
+
+    const playMelody = (startTime: number) => {
+      let time = startTime;
+      
+      melody.forEach((note) => {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        oscillator.frequency.value = note.freq;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.03, time);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, time + note.duration);
+
+        oscillator.start(time);
+        oscillator.stop(time + note.duration);
+        
+        time += note.duration;
+      });
+
+      // Schedule next loop
+      const totalDuration = melody.reduce((sum, note) => sum + note.duration, 0);
+      setTimeout(() => playMelody(ctx.currentTime), totalDuration * 1000);
+    };
+
+    playMelody(ctx.currentTime);
+  }, [getAudioContext]);
+
   return {
     playTick,
     playSpinStart,
     playWin,
     playClick,
     playSpinTicks,
+    playBackgroundMusic,
   };
 };

@@ -17,7 +17,8 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [prizes, setPrizes] = useState<Prize[]>([]);
-  const { playSpinStart, playSpinTicks, playWin, playClick } = useSounds();
+  const [musicStarted, setMusicStarted] = useState(false);
+  const { playSpinStart, playSpinTicks, playWin, playClick, playBackgroundMusic } = useSounds();
 
   // Fetch prizes on mount
   useState(() => {
@@ -129,12 +130,15 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
                 }}
               >
                 <div
-                  className="text-2xl md:text-3xl font-bold"
+                  className="flex flex-col items-center gap-0.5"
                   style={{
                     transform: `skewY(${90 - segmentAngle}deg) rotate(${segmentAngle / 2}deg)`,
                   }}
                 >
-                  {prize.emoji}
+                  <div className="text-xl md:text-2xl">{prize.emoji}</div>
+                  <div className="text-[10px] md:text-xs font-bold text-background/90 leading-tight text-center">
+                    {prize.name}
+                  </div>
                 </div>
               </div>
             ))}
@@ -143,6 +147,10 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
             <button
               onClick={() => {
                 playClick();
+                if (!musicStarted) {
+                  playBackgroundMusic();
+                  setMusicStarted(true);
+                }
                 spinWheel();
               }}
               disabled={isSpinning}

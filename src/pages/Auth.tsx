@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { z } from "zod";
+import ProfileCompletionDialog from "@/components/ProfileCompletionDialog";
 
 const emailSchema = z.string().email("Invalid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -14,7 +16,11 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [telegram, setTelegram] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,7 +46,7 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
@@ -54,14 +60,25 @@ const Auth = () => {
           return;
         }
         
-        toast.success("Logged in successfully!");
-        navigate("/");
+        // Check if profile is complete
+        const metadata = data.user?.user_metadata;
+        if (!metadata?.telegram && !metadata?.instagram && !metadata?.phone) {
+          setShowProfileDialog(true);
+        } else {
+          toast.success("Logged in successfully!");
+          navigate("/");
+        }
       } else {
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              telegram: telegram || null,
+              instagram: instagram || null,
+              phone: phone || null,
+            },
           },
         });
         
@@ -83,50 +100,105 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background aurora-bg flex items-center justify-center px-4">
-      <Card className="max-w-md w-full p-8 bg-card border-border relative z-10">
-        <h1 className="text-3xl font-bold text-foreground mb-6 text-center">
-          {isLogin ? "Login" : "Sign Up"}
-        </h1>
-        <div className="space-y-4">
-          <div>
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-input text-foreground"
-              autoComplete="email"
-            />
+    <>
+      <div className="min-h-screen bg-background aurora-bg flex items-center justify-center px-4">
+        <Card className="max-w-md w-full p-8 bg-card border-border relative z-10">
+          <h1 className="text-3xl font-bold text-foreground mb-6 text-center">
+            {isLogin ? "Login" : "Sign Up"}
+          </h1>
+          <div className="space-y-4">
+            <div>
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-input text-foreground"
+                autoComplete="email"
+              />
+            </div>
+            <div>
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleAuth()}
+                className="w-full bg-input text-foreground"
+                autoComplete={isLogin ? "current-password" : "new-password"}
+              />
+            </div>
+            
+            {!isLogin && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="telegram" className="text-muted-foreground text-xs">
+                    Telegram Username (Optional)
+                  </Label>
+                  <Input
+                    id="telegram"
+                    type="text"
+                    placeholder="@username"
+                    value={telegram}
+                    onChange={(e) => setTelegram(e.target.value)}
+                    className="w-full bg-input text-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="instagram" className="text-muted-foreground text-xs">
+                    Instagram Handle (Optional)
+                  </Label>
+                  <Input
+                    id="instagram"
+                    type="text"
+                    placeholder="@handle"
+                    value={instagram}
+                    onChange={(e) => setInstagram(e.target.value)}
+                    className="w-full bg-input text-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-muted-foreground text-xs">
+                    Phone Number (Optional)
+                  </Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+1234567890"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full bg-input text-foreground"
+                  />
+                </div>
+              </>
+            )}
+            
+            <Button
+              onClick={handleAuth}
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-primary to-primary/80"
+            >
+              {loading ? "Loading..." : isLogin ? "LOGIN" : "SIGN UP"}
+            </Button>
+            <Button
+              onClick={() => setIsLogin(!isLogin)}
+              variant="link"
+              className="w-full"
+            >
+              {isLogin ? "Need an account? Sign up" : "Already have an account? Login"}
+            </Button>
           </div>
-          <div>
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleAuth()}
-              className="w-full bg-input text-foreground"
-              autoComplete={isLogin ? "current-password" : "new-password"}
-            />
-          </div>
-          <Button
-            onClick={handleAuth}
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-primary to-primary/80"
-          >
-            {loading ? "Loading..." : isLogin ? "LOGIN" : "SIGN UP"}
-          </Button>
-          <Button
-            onClick={() => setIsLogin(!isLogin)}
-            variant="link"
-            className="w-full"
-          >
-            {isLogin ? "Need an account? Sign up" : "Already have an account? Login"}
-          </Button>
-        </div>
-      </Card>
-    </div>
+        </Card>
+      </div>
+      
+      <ProfileCompletionDialog 
+        open={showProfileDialog}
+        onClose={() => {
+          setShowProfileDialog(false);
+          navigate("/");
+        }}
+      />
+    </>
   );
 };
 

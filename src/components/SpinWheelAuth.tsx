@@ -152,12 +152,16 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
       
       // Calculate rotation to land on the prize
       const segmentAngle = 360 / prizes.length;
-      const targetAngle = prizeIndex * segmentAngle + segmentAngle / 2;
+      // Canvas starts at 0° (right/3 o'clock), pointer is at top (12 o'clock = -90° offset)
+      // We need to rotate so the prize center aligns with the pointer
+      const prizeAngleOnCanvas = prizeIndex * segmentAngle;
       const spins = 3 + Math.random() * 2;
-      const finalRotation = rotation + spins * 360 + (270 - targetAngle);
+      // Rotate to align: start from current rotation, add full spins, then rotate to align prize with top
+      // The prize needs to end up at -90° (or 270°) to align with top pointer
+      const finalRotation = rotation + spins * 360 - prizeAngleOnCanvas - (segmentAngle / 2) + 90;
       
       console.log("Segment angle:", segmentAngle);
-      console.log("Target angle for pointer:", targetAngle);
+      console.log("Prize angle on canvas:", prizeAngleOnCanvas);
       console.log("Final rotation:", finalRotation);
 
       setRotation(finalRotation);

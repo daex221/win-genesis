@@ -171,14 +171,30 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
     playSpinTicks(4000);
 
     try {
+      console.log("[SPIN] Starting spin for tier:", tier, "balance:", balance);
+      
       const { data, error } = await supabase.functions.invoke("spin-with-wallet", {
         body: { tier },
       });
 
-      if (error) throw error;
+      console.log("[SPIN] Response:", { data, error });
 
-      if (data.error) {
+      if (error) {
+        console.error("[SPIN] Edge function error:", error);
+        throw new Error(`Spin failed: ${error.message}`);
+      }
+
+      if (data?.error) {
+        console.error("[SPIN] Data error:", data.error);
+        if (data.error === "Insufficient balance") {
+          throw new Error(`Insufficient balance! Need $${data.required}, have $${data.balance}`);
+        }
         throw new Error(data.error);
+      }
+
+      if (!data?.prize) {
+        console.error("[SPIN] No prize in response");
+        throw new Error("Invalid response from server");
       }
 
       const wonPrize = data.prize;
@@ -242,10 +258,19 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
         toast.success(`Won: ${wonPrize.emoji} ${wonPrize.name}`);
       }, 4000);
     } catch (error) {
-      console.error("Error spinning:", error);
+      console.error("[SPIN] Error spinning:", error);
       toast.dismiss();
-      toast.error(error instanceof Error ? error.message : "Failed to spin");
+      
+      let errorMessage = "Failed to spin. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage, {
+        duration: 5000,
+      });
       setIsSpinning(false);
+      onBalanceChange(); // Refresh balance in case it changed
     }
   };
 

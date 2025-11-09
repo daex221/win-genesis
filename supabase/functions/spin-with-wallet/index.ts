@@ -23,21 +23,32 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("[SPIN-WITH-WALLET] Missing authorization header");
+      return new Response(
+        JSON.stringify({ error: "Missing authorization" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData } = await supabaseClient.auth.getUser(token);
-    const user = userData.user;
+    const { data: userData, error: authError } = await supabaseClient.auth.getUser(token);
     
-    if (!user) {
+    if (authError || !userData.user) {
+      console.error("[SPIN-WITH-WALLET] Authentication failed:", authError);
       return new Response(
         JSON.stringify({ error: "Not authenticated" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    const user = userData.user;
 
     const { tier } = await req.json();
 
     if (!tier || !["basic", "gold", "vip"].includes(tier)) {
+      console.error("[SPIN-WITH-WALLET] Invalid tier:", tier);
       return new Response(
         JSON.stringify({ error: "Invalid tier" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -82,6 +93,11 @@ serve(async (req) => {
 
     // Check sufficient balance
     if (Number(wallet.balance) < cost) {
+      console.log("[SPIN-WITH-WALLET] Insufficient balance:", {
+        balance: Number(wallet.balance),
+        required: cost,
+        tier
+      });
       return new Response(
         JSON.stringify({ 
           error: "Insufficient balance",

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import AdminAnalytics from "@/components/AdminAnalytics";
 import PrizeManagement from "@/components/PrizeManagement";
+import UserMenu from "@/components/UserMenu";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
@@ -89,7 +90,7 @@ const Admin = () => {
       <div className="relative z-10 container mx-auto px-4 py-12">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-foreground">Admin Dashboard</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-3 items-center">
             <Button
               onClick={() => navigate("/")}
               variant="outline"
@@ -97,13 +98,7 @@ const Admin = () => {
             >
               ← Back to App
             </Button>
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="rounded-full"
-            >
-              Logout
-            </Button>
+            {user && <UserMenu user={user} onLogout={handleLogout} />}
           </div>
         </div>
 

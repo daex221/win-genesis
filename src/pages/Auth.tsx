@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,14 +22,16 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/");
+        navigate(redirectTo);
       }
     });
-  }, [navigate]);
+  }, [navigate, redirectTo]);
 
   const handleAuth = async () => {
     try {
@@ -66,7 +68,7 @@ const Auth = () => {
           setShowProfileDialog(true);
         } else {
           toast.success("Logged in successfully!");
-          navigate("/");
+          navigate(redirectTo);
         }
       } else {
         const { error } = await supabase.auth.signUp({
@@ -195,7 +197,7 @@ const Auth = () => {
         open={showProfileDialog}
         onClose={() => {
           setShowProfileDialog(false);
-          navigate("/");
+          navigate(redirectTo);
         }}
       />
     </>

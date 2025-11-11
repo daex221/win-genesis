@@ -155,17 +155,35 @@ serve(async (req) => {
 
     console.log("[SPIN-PRIZE] Valid transaction found for email:", transaction.email);
 
+    // Get prizes already won by this user
+    const { data: wonPrizes } = await supabaseClient
+      .from("spins")
+      .select("prize_id")
+      .eq("email", transaction.email);
+
+    const wonPrizeIds = new Set(wonPrizes?.map(s => s.prize_id) || []);
+    console.log("[SPIN-PRIZE] User has won", wonPrizeIds.size, "prizes already");
+
     // Fetch active prize metadata only (public data)
-    const { data: prizeMetadata, error: metadataError } = await supabaseClient
+    const { data: allPrizes, error: metadataError } = await supabaseClient
       .from("prize_metadata")
       .select("*")
       .eq("active", true);
 
-    if (metadataError || !prizeMetadata || prizeMetadata.length === 0) {
+    if (metadataError || !allPrizes || allPrizes.length === 0) {
       return new Response(
         JSON.stringify({ error: "No prizes available" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Filter out already won prizes
+    let prizeMetadata = allPrizes.filter(p => !wonPrizeIds.has(p.id));
+    
+    // If all prizes won, allow re-winning
+    if (prizeMetadata.length === 0) {
+      console.log("[SPIN-PRIZE] All prizes won, allowing re-win");
+      prizeMetadata = allPrizes;
     }
 
     // Weighted random selection based on tier

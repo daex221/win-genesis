@@ -104,11 +104,18 @@ const PrizeManagement = () => {
   };
 
   const handleUpdateDeliveryContent = async (prizeId: string, content: string) => {
+    if (!content.trim()) {
+      toast.error("Please enter delivery content");
+      return;
+    }
+
     const { error } = await supabase
       .from("prize_delivery")
       .upsert({
         prize_id: prizeId,
         delivery_content: content,
+      }, {
+        onConflict: 'prize_id'
       });
 
     if (error) {
@@ -117,8 +124,8 @@ const PrizeManagement = () => {
       return;
     }
 
-    toast.success("Delivery content updated");
-    fetchPrizes();
+    toast.success("Delivery content updated successfully!");
+    await fetchPrizes();
   };
 
   return (

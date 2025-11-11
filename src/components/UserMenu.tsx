@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Upload, LogOut, User as UserIcon } from "lucide-react";
+import { Upload, LogOut, Shield } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface UserMenuProps {
   user: User;
@@ -19,11 +20,28 @@ interface UserMenuProps {
 }
 
 const UserMenu = ({ user, onLogout }: UserMenuProps) => {
+  const navigate = useNavigate();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
     user.user_metadata?.avatar_url || null
   );
   const [uploading, setUploading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, [user]);
+
+  const checkAdminStatus = async () => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("app_role")
+      .eq("user_id", user.id)
+      .eq("app_role", "admin")
+      .maybeSingle();
+    
+    setIsAdmin(!!data);
+  };
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
@@ -132,6 +150,18 @@ const UserMenu = ({ user, onLogout }: UserMenuProps) => {
             <Upload className="mr-2 h-4 w-4" />
             {uploading ? "Uploading..." : "Change Avatar"}
           </DropdownMenuItem>
+          {isAdmin && (
+            <>
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem
+                onClick={() => navigate("/admin")}
+                className="cursor-pointer text-foreground hover:bg-muted"
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Admin Dashboard
+              </DropdownMenuItem>
+            </>
+          )}
           <DropdownMenuSeparator className="bg-border" />
           <DropdownMenuItem
             onClick={onLogout}

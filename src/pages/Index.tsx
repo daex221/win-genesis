@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import supporterswinLogo from "@/assets/supporterswin-logo.jpg";
 import { toast } from "sonner";
 import { Zap, Gift, Users, Award, TrendingUp } from "lucide-react";
+import UserMenu from "@/components/UserMenu";
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -78,16 +79,16 @@ const Index = () => {
         <nav className="container mx-auto px-4 py-6 flex justify-between items-center">
           <img src={supporterswinLogo} alt="Supporterswin" className="h-10 w-auto" />
           {user ? (
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-cyan-400 shadow-[0_0_20px_rgba(0,217,255,0.6)]">
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=user" alt="Profile" className="w-full h-full" />
-              </div>
-            </div>
+            <UserMenu user={user} onLogout={async () => {
+              await supabase.auth.signOut();
+              setUser(null);
+            }} />
           ) : (
-            <div className="flex gap-4">
-              <NavLink to="/auth">Sign In</NavLink>
-              <NavLink to="/admin">Admin</NavLink>
-            </div>
+            <NavLink to="/auth">
+              <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:scale-105 transition-transform">
+                Sign In
+              </Button>
+            </NavLink>
           )}
         </nav>
       </header>

@@ -332,6 +332,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      grant_admin_by_email: { Args: { user_email: string }; Returns: undefined }
       has_role: {
         Args: { required_role: string; user_id: string }
         Returns: boolean

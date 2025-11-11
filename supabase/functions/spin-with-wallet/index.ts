@@ -184,7 +184,7 @@ serve(async (req) => {
       });
 
     // Record the spin
-    const { error: spinError } = await supabaseClient
+    const { data: spinRecord, error: spinError } = await supabaseClient
       .from("spins")
       .insert({
         prize_id: selectedPrize.id,
@@ -192,10 +192,58 @@ serve(async (req) => {
         token_hash: `wallet_${Date.now()}_${user.id}`,
         email: user.email!,
         amount_paid: cost,
-      });
+      })
+      .select()
+      .single();
 
-    if (spinError) {
+    if (spinError || !spinRecord) {
       console.error("[SPIN-WITH-WALLET] Error recording spin:", spinError);
+      return new Response(
+        JSON.stringify({ error: "Failed to record spin" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Handle prize delivery based on fulfillment type
+    console.log("[SPIN-WITH-WALLET] Prize fulfillment type:", selectedPrize.fulfillment_type);
+    
+    try {
+      if (selectedPrize.fulfillment_type === "manual") {
+        // Send manual prize notification
+        console.log("[SPIN-WITH-WALLET] Sending manual prize notification");
+        await supabaseClient.functions.invoke("notify-manual-prize", {
+          body: {
+            email: user.email!,
+            userName: user.email!.split("@")[0],
+            prizeName: selectedPrize.name,
+            prizeEmoji: selectedPrize.emoji,
+            prizeId: selectedPrize.id,
+            spinId: spinRecord.id,
+            transactionId: `TX-${spinRecord.id.substring(0, 8)}`,
+            wonAt: new Date().toISOString(),
+            tier,
+            amountPaid: cost,
+            fulfillmentInstructions: deliveryData.delivery_content,
+          },
+        });
+      } else {
+        // Send automatic prize email
+        console.log("[SPIN-WITH-WALLET] Sending automatic prize email");
+        await supabaseClient.functions.invoke("send-prize-email", {
+          body: {
+            email: user.email!,
+            userName: user.email!.split("@")[0],
+            prizeName: selectedPrize.name,
+            prizeEmoji: selectedPrize.emoji,
+            prizeLink: deliveryData.delivery_content,
+            transactionId: `TX-${spinRecord.id.substring(0, 8)}`,
+            spinId: spinRecord.id,
+          },
+        });
+      }
+    } catch (deliveryError) {
+      console.error("[SPIN-WITH-WALLET] Prize delivery error (non-blocking):", deliveryError);
+      // Don't block the spin result even if email fails
     }
 
     console.log("[SPIN-WITH-WALLET] Spin successful, new balance:", newBalance);

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import AdminAnalytics from "@/components/AdminAnalytics";
 import PrizeManagement from "@/components/PrizeManagement";
+import ManualPrizeFulfillment from "@/components/ManualPrizeFulfillment";
 import UserMenu from "@/components/UserMenu";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
@@ -103,6 +104,7 @@ const Admin = () => {
         </div>
 
         <AdminAnalytics />
+        <ManualPrizeFulfillment />
         <PrizeManagement />
       </div>
     </div>

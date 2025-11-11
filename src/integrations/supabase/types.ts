@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      email_logs: {
+        Row: {
+          created_at: string
+          email_type: string
+          error_message: string | null
+          id: string
+          sendgrid_message_id: string | null
+          sent_at: string | null
+          spin_id: string | null
+          status: string
+          user_email: string
+        }
+        Insert: {
+          created_at?: string
+          email_type: string
+          error_message?: string | null
+          id?: string
+          sendgrid_message_id?: string | null
+          sent_at?: string | null
+          spin_id?: string | null
+          status?: string
+          user_email: string
+        }
+        Update: {
+          created_at?: string
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          sendgrid_message_id?: string | null
+          sent_at?: string | null
+          spin_id?: string | null
+          status?: string
+          user_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_spin_id_fkey"
+            columns: ["spin_id"]
+            isOneToOne: false
+            referencedRelation: "spins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prize_delivery: {
         Row: {
           delivery_content: string
@@ -42,6 +86,7 @@ export type Database = {
           active: boolean
           created_at: string
           emoji: string
+          fulfillment_type: string
           id: string
           name: string
           type: string
@@ -53,6 +98,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           emoji: string
+          fulfillment_type?: string
           id?: string
           name: string
           type: string
@@ -64,6 +110,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           emoji?: string
+          fulfillment_type?: string
           id?: string
           name?: string
           type?: string
@@ -78,6 +125,8 @@ export type Database = {
           amount_paid: number
           created_at: string
           email: string
+          fulfilled_at: string | null
+          fulfillment_status: string
           id: string
           prize_id: string
           stripe_payment_id: string | null
@@ -88,6 +137,8 @@ export type Database = {
           amount_paid: number
           created_at?: string
           email: string
+          fulfilled_at?: string | null
+          fulfillment_status?: string
           id?: string
           prize_id: string
           stripe_payment_id?: string | null
@@ -98,6 +149,8 @@ export type Database = {
           amount_paid?: number
           created_at?: string
           email?: string
+          fulfilled_at?: string | null
+          fulfillment_status?: string
           id?: string
           prize_id?: string
           stripe_payment_id?: string | null
@@ -229,6 +282,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      webhook_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          payload: Json
+          response_code: number | null
+          sent_at: string | null
+          spin_id: string | null
+          status: string
+          webhook_url: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          payload: Json
+          response_code?: number | null
+          sent_at?: string | null
+          spin_id?: string | null
+          status?: string
+          webhook_url: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          payload?: Json
+          response_code?: number | null
+          sent_at?: string | null
+          spin_id?: string | null
+          status?: string
+          webhook_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_logs_spin_id_fkey"
+            columns: ["spin_id"]
+            isOneToOne: false
+            referencedRelation: "spins"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

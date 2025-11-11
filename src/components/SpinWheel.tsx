@@ -158,7 +158,12 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
 
   return (
     <div className="relative">
-      <div className="relative w-[320px] h-[320px] md:w-[450px] md:h-[450px]">
+      {prizes.length === 0 ? (
+        <div className="w-[320px] h-[320px] md:w-[450px] md:h-[450px] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <div className="relative w-[320px] h-[320px] md:w-[450px] md:h-[450px]">
         {/* Triangle Pointer */}
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 w-0 h-0 z-20"
@@ -213,6 +218,7 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 };

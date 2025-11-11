@@ -163,19 +163,24 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
       return;
     }
 
+    // Start spinning immediately for better UX
     setIsSpinning(true);
-    toast.loading("Spinning...");
-    
-    // Play spin sounds
     playSpinStart();
     playSpinTicks(4000);
 
     try {
       console.log("[SPIN] Starting spin for tier:", tier, "balance:", balance);
       
-      const { data, error } = await supabase.functions.invoke("spin-with-wallet", {
+      // Call backend while wheel is spinning
+      const spinPromise = supabase.functions.invoke("spin-with-wallet", {
         body: { tier },
       });
+
+      // Start a temporary rotation immediately
+      const tempRotation = rotation + 1080 + Math.random() * 360;
+      setRotation(tempRotation);
+
+      const { data, error } = await spinPromise;
 
       console.log("[SPIN] Response:", { data, error });
 
@@ -200,50 +205,30 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
       const wonPrize = data.prize;
       const prizeIndex = prizes.findIndex((p) => p.id === wonPrize.id);
       
-      console.log("=== SPIN DEBUG ===");
-      console.log("All prizes:", prizes.map((p, i) => `${i}: ${p.name}`));
-      console.log("Won prize:", wonPrize.name, "ID:", wonPrize.id);
-      console.log("Prize index in array:", prizeIndex);
-      
-      // Calculate rotation to land on the prize
+      // Calculate final rotation to land on the prize
       const segmentAngle = 360 / prizes.length;
-      
-      // Canvas draws first segment starting at 0° (right/3 o'clock)
-      // but our pointer is at top (270° in canvas terms)
       const prizeCenterAngle = prizeIndex * segmentAngle + (segmentAngle / 2);
-      
-      // To align prize with pointer at top (270°)
       const targetAngle = 270 - prizeCenterAngle;
       
-      // Normalize current rotation to 0-360 range
-      const currentNormalizedRotation = rotation % 360;
-      
-      // Calculate shortest path to target
+      // Normalize and calculate final rotation
+      const currentNormalizedRotation = tempRotation % 360;
       let rotationDelta = targetAngle - currentNormalizedRotation;
       
-      // Make it rotate in the positive direction
       if (rotationDelta < 0) {
         rotationDelta += 360;
       }
       
-      // Add extra full rotations for effect (3-5 full spins)
-      const extraSpins = 3 + Math.floor(Math.random() * 3);
-      const finalRotation = rotation + rotationDelta + (extraSpins * 360);
-      
-      console.log("Segment angle:", segmentAngle);
-      console.log("Prize center angle:", prizeCenterAngle);
-      console.log("Rotation delta:", rotationDelta);
-      console.log("Final rotation:", finalRotation);
+      const extraSpins = 2;
+      const finalRotation = tempRotation + rotationDelta + (extraSpins * 360);
 
       setRotation(finalRotation);
 
       setTimeout(async () => {
         setIsSpinning(false);
-        toast.dismiss();
         playWin();
         
-        // Send webhook notification
-        await sendPrizeWebhook({ name: wonPrize.name, emoji: wonPrize.emoji });
+        // Send webhook notification (non-blocking)
+        sendPrizeWebhook({ name: wonPrize.name, emoji: wonPrize.emoji });
         
         // Trigger confetti
         confetti({
@@ -259,7 +244,6 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
       }, 4000);
     } catch (error) {
       console.error("[SPIN] Error spinning:", error);
-      toast.dismiss();
       
       let errorMessage = "Failed to spin. Please try again.";
       if (error instanceof Error) {
@@ -270,13 +254,18 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
         duration: 5000,
       });
       setIsSpinning(false);
-      onBalanceChange(); // Refresh balance in case it changed
+      onBalanceChange();
     }
   };
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <div className="relative w-[320px] h-[320px] md:w-[450px] md:h-[450px]">
+      {prizes.length === 0 ? (
+        <div className="w-[320px] h-[320px] md:w-[450px] md:h-[450px] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <div className="relative w-[320px] h-[320px] md:w-[450px] md:h-[450px]">
         {/* Triangle Pointer */}
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 w-0 h-0 z-20"
@@ -330,6 +319,7 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
           </button>
         </div>
       </div>
+      )}
 
       {/* Balance info */}
       <div className="text-center bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 px-8 py-4">

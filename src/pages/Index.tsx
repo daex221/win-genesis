@@ -19,6 +19,7 @@ const Index = () => {
   const [user, setUser] = useState<any>(null);
   const [selectedTier, setSelectedTier] = useState<"basic" | "gold" | "vip">("basic");
   const [balance, setBalance] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -33,6 +34,20 @@ const Index = () => {
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
+    
+    if (user) {
+      // Check if user is admin
+      const { data } = await supabase
+        .from("user_roles")
+        .select("app_role")
+        .eq("user_id", user.id)
+        .eq("app_role", "admin")
+        .maybeSingle();
+      
+      setIsAdmin(!!data);
+    } else {
+      setIsAdmin(false);
+    }
   };
 
   const handlePrizeWon = (prize: { name: string; emoji: string }) => {
@@ -91,30 +106,16 @@ const Index = () => {
                 </Button>
               </NavLink>
             )}
-            <Button
-              onClick={async () => {
-                try {
-                  const { error } = await supabase.auth.signInWithPassword({
-                    email: "admin@test.com",
-                    password: "1234567890",
-                  });
-                  
-                  if (error) {
-                    toast.error(error.message);
-                    return;
-                  }
-                  
-                  toast.success("Admin logged in!");
-                  window.location.href = "/admin";
-                } catch (error) {
-                  toast.error("Failed to login as admin");
-                }
-              }}
-              variant="secondary"
-              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white border-0"
-            >
-              🔐 Admin
-            </Button>
+            {isAdmin && (
+              <NavLink to="/admin">
+                <Button
+                  variant="secondary"
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white border-0"
+                >
+                  🔐 Admin
+                </Button>
+              </NavLink>
+            )}
           </div>
         </nav>
       </header>

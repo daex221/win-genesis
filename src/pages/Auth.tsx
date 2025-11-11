@@ -91,7 +91,10 @@ const Auth = () => {
           setShowProfileDialog(true);
         } else {
           toast.success("Logged in successfully!");
-          navigate(redirectTo);
+          // Small delay to ensure session is fully established
+          setTimeout(() => {
+            window.location.href = redirectTo;
+          }, 100);
         }
       } else {
         const { error } = await supabase.auth.signUp({
@@ -128,9 +131,16 @@ const Auth = () => {
     <>
       <div className="min-h-screen bg-background aurora-bg flex items-center justify-center px-4">
         <Card className="max-w-md w-full p-8 bg-card border-border relative z-10">
-          <h1 className="text-3xl font-bold text-foreground mb-6 text-center">
-            {isLogin ? "Login" : "Sign Up"}
-          </h1>
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              {isLogin ? "Welcome Back!" : "Join the Fun"}
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {isLogin 
+                ? "Log in to continue spinning and winning amazing prizes" 
+                : "Create your account and start winning exclusive rewards today"}
+            </p>
+          </div>
           <div className="space-y-4">
             <div>
               <Input
@@ -156,6 +166,11 @@ const Auth = () => {
             
             {!isLogin && (
               <>
+                <div className="bg-muted/50 p-4 rounded-lg mb-4">
+                  <p className="text-sm text-muted-foreground">
+                    💡 Add your social handles to receive prizes faster and get exclusive notifications!
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="telegram" className="text-muted-foreground text-xs">
                     Telegram Username (Optional)

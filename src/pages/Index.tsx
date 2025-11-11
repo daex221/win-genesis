@@ -26,6 +26,9 @@ const Index = () => {
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        checkUser();
+      }
     });
 
     return () => subscription.unsubscribe();

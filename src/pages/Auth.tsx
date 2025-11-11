@@ -33,28 +33,6 @@ const Auth = () => {
     });
   }, [navigate, redirectTo]);
 
-  const handleAdminLogin = async () => {
-    setLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: "admin@test.com",
-        password: "1234567890",
-      });
-      
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      
-      toast.success("Admin logged in successfully!");
-      navigate("/admin");
-    } catch (error) {
-      toast.error("Failed to login as admin");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAuth = async () => {
     try {
@@ -219,24 +197,6 @@ const Auth = () => {
               className="w-full bg-gradient-to-r from-primary to-primary/80"
             >
               {loading ? "Loading..." : isLogin ? "Log in" : "Sign Up"}
-            </Button>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">OR</span>
-              </div>
-            </div>
-            
-            <Button
-              onClick={handleAdminLogin}
-              disabled={loading}
-              variant="secondary"
-              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white border-0"
-            >
-              🔐 Admin Login
             </Button>
             
             <Button

@@ -180,14 +180,24 @@ const Auth = () => {
               disabled={loading}
               className="w-full bg-gradient-to-r from-primary to-primary/80"
             >
-              {loading ? "Loading..." : isLogin ? "LOGIN" : "SIGN UP"}
+              {loading ? "Loading..." : isLogin ? "Log in" : "Sign Up"}
             </Button>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">OR</span>
+              </div>
+            </div>
+            
             <Button
               onClick={() => setIsLogin(!isLogin)}
-              variant="link"
-              className="w-full"
+              variant="outline"
+              className="w-full border-2"
             >
-              {isLogin ? "Need an account? Sign up" : "Already have an account? Login"}
+              {isLogin ? "Create new account" : "Already have an account? Log in"}
             </Button>
           </div>
         </Card>

@@ -148,8 +148,12 @@ serve(async (req) => {
               },
             ],
             from: {
-              email: "noreply@supporterswin.com",
+              email: "dimejicole21@gmail.com",
               name: "Supporters Win",
+            },
+            reply_to: {
+              email: "support@supporterswin.com",
+              name: "Supporters Win Support",
             },
             content: [
               {

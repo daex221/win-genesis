@@ -95,7 +95,7 @@ const Index = () => {
               onClick={async () => {
                 try {
                   const { error } = await supabase.auth.signInWithPassword({
-                    email: "zmeena@admin.com",
+                    email: "admin@test.com",
                     password: "1234567890",
                   });
                   

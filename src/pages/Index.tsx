@@ -78,18 +78,44 @@ const Index = () => {
       <header className="relative z-50">
         <nav className="container mx-auto px-4 py-6 flex justify-between items-center">
           <img src={supporterswinLogo} alt="Supporterswin" className="h-10 w-auto" />
-          {user ? (
-            <UserMenu user={user} onLogout={async () => {
-              await supabase.auth.signOut();
-              setUser(null);
-            }} />
-          ) : (
-            <NavLink to="/auth">
-              <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:scale-105 transition-transform">
-                Sign In
-              </Button>
-            </NavLink>
-          )}
+          <div className="flex gap-3 items-center">
+            {user ? (
+              <UserMenu user={user} onLogout={async () => {
+                await supabase.auth.signOut();
+                setUser(null);
+              }} />
+            ) : (
+              <NavLink to="/auth">
+                <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:scale-105 transition-transform">
+                  Sign In
+                </Button>
+              </NavLink>
+            )}
+            <Button
+              onClick={async () => {
+                try {
+                  const { error } = await supabase.auth.signInWithPassword({
+                    email: "zmeena@admin.com",
+                    password: "1234567890",
+                  });
+                  
+                  if (error) {
+                    toast.error(error.message);
+                    return;
+                  }
+                  
+                  toast.success("Admin logged in!");
+                  window.location.href = "/admin";
+                } catch (error) {
+                  toast.error("Failed to login as admin");
+                }
+              }}
+              variant="secondary"
+              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white border-0"
+            >
+              🔐 Admin
+            </Button>
+          </div>
         </nav>
       </header>
 

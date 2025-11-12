@@ -18,54 +18,76 @@ const Admin = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkAdminStatus();
+    // Check initial session
+    const initializeAdmin = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await checkAdminStatus();
-        } else {
-          setIsAdmin(false);
-          setLoading(false);
-        }
+      if (!session?.user) {
+        setLoading(false);
+        navigate("/auth");
+        return;
       }
-    );
+
+      setUser(session.user);
+      await verifyAdminRole(session.user.id);
+    };
+
+    initializeAdmin();
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        await verifyAdminRole(session.user.id);
+      } else {
+        setUser(null);
+        setIsAdmin(false);
+        setLoading(false);
+        navigate("/auth");
+      }
+    });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
-  const checkAdminStatus = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session?.user) {
-      navigate("/auth?redirect=/admin");
-      return;
-    }
+  const verifyAdminRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("app_role")
+        .eq("user_id", userId)
+        .eq("app_role", "admin")
+        .maybeSingle();
 
-    setUser(session.user);
+      if (error) {
+        console.error("Error checking admin role:", error);
+        toast.error("Error checking admin status");
+        setLoading(false);
+        setIsAdmin(false);
+        navigate("/");
+        return;
+      }
 
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("app_role")
-      .eq("user_id", session.user.id)
-      .eq("app_role", "admin")
-      .maybeSingle();
+      if (!data) {
+        toast.error("Access denied. Admin privileges required.");
+        setLoading(false);
+        setIsAdmin(false);
+        navigate("/");
+        return;
+      }
 
-    if (error) {
-      toast.error("Error checking admin status");
+      setIsAdmin(true);
       setLoading(false);
-      return;
-    }
-
-    if (!data) {
-      toast.error("Access denied. Admin privileges required.");
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      toast.error("An unexpected error occurred");
+      setLoading(false);
       navigate("/");
-      return;
     }
-
-    setIsAdmin(true);
-    setLoading(false);
   };
 
   const handleLogout = async () => {
@@ -93,17 +115,12 @@ const Admin = () => {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-foreground">Admin Dashboard</h1>
           <div className="flex gap-3 items-center">
-            <Button
-              onClick={() => navigate("/")}
-              variant="outline"
-              className="rounded-full"
-            >
+            <Button onClick={() => navigate("/")} variant="outline" className="rounded-full">
               ← Back to App
             </Button>
             {user && <UserMenu user={user} onLogout={handleLogout} />}
           </div>
         </div>
-
         <AdminAnalytics />
         <UserManagement />
         <ManualPrizeFulfillment />

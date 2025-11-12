@@ -18,9 +18,8 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [prizes, setPrizes] = useState<Prize[]>([]);
-  const [musicStarted, setMusicStarted] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { playSpinStart, playSpinTicks, playWin, playClick, playBackgroundMusic } = useSounds();
+  const { playSpinStart, playSpinTicks, playWin, playClick } = useSounds();
 
   const colors = [
     "#1a5f7a", // Dark Teal (top)
@@ -274,10 +273,6 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
           <button
             onClick={() => {
               playClick();
-              if (!musicStarted) {
-                playBackgroundMusic();
-                setMusicStarted(true);
-              }
               spinWheel();
             }}
             disabled={isSpinning}

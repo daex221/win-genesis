@@ -58,6 +58,50 @@ export type Database = {
           },
         ]
       }
+      prize_content_pool: {
+        Row: {
+          content_name: string | null
+          content_type: string | null
+          content_url: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          prize_id: string
+          sequence_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          content_name?: string | null
+          content_type?: string | null
+          content_url: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          prize_id: string
+          sequence_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          content_name?: string | null
+          content_type?: string | null
+          content_url?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          prize_id?: string
+          sequence_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prize_content_pool_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "prize_metadata"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prize_delivery: {
         Row: {
           delivery_content: string

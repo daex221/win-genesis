@@ -160,19 +160,39 @@ serve(async (req) => {
     const selectedIndex = prizeMetadata.findIndex(p => p.id === selectedPrize.id);
     console.log("[SPIN-WITH-WALLET] Selected prize:", selectedPrize.name, "at index:", selectedIndex);
 
-    // Fetch delivery content for the selected prize (using service role)
-    const { data: deliveryData, error: deliveryError } = await supabaseClient
-      .from("prize_delivery")
-      .select("delivery_content")
+    // Get content pool for this prize
+    const { data: contentPool, error: contentError } = await supabaseClient
+      .from("prize_content_pool")
+      .select("*")
       .eq("prize_id", selectedPrize.id)
-      .single();
+      .eq("is_active", true);
 
-    if (deliveryError) {
-      console.error("[SPIN-WITH-WALLET] Error fetching delivery content:", deliveryError);
-      return new Response(
-        JSON.stringify({ error: "Failed to retrieve prize details" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Pick random content from pool or fall back to prize_delivery
+    let prizeContent = "";
+    let contentName = "Prize Content";
+
+    if (contentPool && contentPool.length > 0) {
+      const randomContent = contentPool[Math.floor(Math.random() * contentPool.length)];
+      prizeContent = randomContent.content_url;
+      contentName = randomContent.content_name || "Prize Content";
+      console.log("[SPIN-WITH-WALLET] Selected content from pool:", contentName);
+    } else {
+      // Fall back to prize_delivery table
+      const { data: deliveryData, error: deliveryError } = await supabaseClient
+        .from("prize_delivery")
+        .select("delivery_content")
+        .eq("prize_id", selectedPrize.id)
+        .single();
+
+      if (deliveryError) {
+        console.error("[SPIN-WITH-WALLET] Error fetching delivery content:", deliveryError);
+        return new Response(
+          JSON.stringify({ error: "Failed to retrieve prize details" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      prizeContent = deliveryData.delivery_content;
+      console.log("[SPIN-WITH-WALLET] Using fallback delivery content");
     }
 
     // Deduct balance
@@ -241,7 +261,7 @@ serve(async (req) => {
             wonAt: new Date().toISOString(),
             tier,
             amountPaid: cost,
-            fulfillmentInstructions: deliveryData.delivery_content,
+            fulfillmentInstructions: prizeContent,
           },
         });
       } else {
@@ -253,7 +273,7 @@ serve(async (req) => {
             userName: user.email!.split("@")[0],
             prizeName: selectedPrize.name,
             prizeEmoji: selectedPrize.emoji,
-            prizeLink: deliveryData.delivery_content,
+            prizeLink: prizeContent,
             transactionId: `TX-${spinRecord.id.substring(0, 8)}`,
             spinId: spinRecord.id,
           },
@@ -273,7 +293,8 @@ serve(async (req) => {
           name: selectedPrize.name,
           emoji: selectedPrize.emoji,
           type: selectedPrize.type,
-          delivery_content: deliveryData.delivery_content,
+          delivery_content: prizeContent,
+          content_name: contentName,
         },
         newBalance: newBalance,
       }),

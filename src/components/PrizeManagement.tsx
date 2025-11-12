@@ -4,21 +4,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Link as LinkIcon, Trash2 } from "lucide-react";
+import { Upload, Link as LinkIcon, Trash2, Plus } from "lucide-react";
 
 const PrizeManagement = () => {
   const [prizes, setPrizes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>(null);
+  const [contentPool, setContentPool] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [showContentPool, setShowContentPool] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPrizes();
   }, []);
 
   const fetchPrizes = async () => {
-    const { data, error } = await supabase.from("prize_metadata").select("*").order("created_at", { ascending: true });
+    const { data, error } = await supabase
+      .from("prize_metadata")
+      .select("*")
+      .order("created_at", { ascending: true });
 
     if (error) {
       console.error("Error fetching prizes:", error);
@@ -29,14 +34,32 @@ const PrizeManagement = () => {
     setPrizes(data || []);
   };
 
+  const fetchContentPool = async (prizeId: string) => {
+    const { data, error } = await supabase
+      .from("prize_content_pool")
+      .select("*")
+      .eq("prize_id", prizeId)
+      .order("sequence_order", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching content pool:", error);
+      toast.error("Failed to load content pool");
+      return;
+    }
+
+    setContentPool(data || []);
+  };
+
   const handleEdit = (prize: any) => {
     setEditingId(prize.id);
     setEditData({ ...prize });
+    fetchContentPool(prize.id);
+    setShowContentPool(prize.id);
   };
 
   const handleSave = async () => {
-    if (!editData?.name || !editData?.delivery_content) {
-      toast.error("Prize name and delivery content are required");
+    if (!editData?.name) {
+      toast.error("Prize name is required");
       return;
     }
 
@@ -47,7 +70,6 @@ const PrizeManagement = () => {
         .update({
           name: editData.name,
           emoji: editData.emoji,
-          delivery_content: editData.delivery_content,
           fulfillment_type: editData.fulfillment_type,
           weight_basic: editData.weight_basic || 100,
           weight_gold: editData.weight_gold || 100,
@@ -61,6 +83,7 @@ const PrizeManagement = () => {
       toast.success("Prize updated successfully");
       setEditingId(null);
       setEditData(null);
+      setShowContentPool(null);
       fetchPrizes();
     } catch (error) {
       console.error("Error saving prize:", error);
@@ -70,26 +93,81 @@ const PrizeManagement = () => {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddContentItem = async (prizeId: string, contentUrl: string, contentName: string) => {
+    if (!contentUrl.trim()) {
+      toast.error("Content URL is required");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const maxSequence = contentPool.length > 0 
+        ? Math.max(...contentPool.map(c => c.sequence_order || 0))
+        : 0;
+
+      const { error } = await supabase
+        .from("prize_content_pool")
+        .insert({
+          prize_id: prizeId,
+          content_url: contentUrl,
+          content_name: contentName || `Content ${contentPool.length + 1}`,
+          sequence_order: maxSequence + 1,
+          is_active: true,
+        });
+
+      if (error) throw error;
+
+      toast.success("Content added to pool");
+      await fetchContentPool(prizeId);
+    } catch (error) {
+      console.error("Error adding content:", error);
+      toast.error("Failed to add content");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteContentItem = async (contentId: string, prizeId: string) => {
+    if (!confirm("Delete this content item?")) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("prize_content_pool")
+        .delete()
+        .eq("id", contentId);
+
+      if (error) throw error;
+
+      toast.success("Content deleted");
+      await fetchContentPool(prizeId);
+    } catch (error) {
+      console.error("Error deleting content:", error);
+      toast.error("Failed to delete content");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, prizeId: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     try {
       const fileName = `${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("prize-files").upload(fileName, file);
+      const { error } = await supabase.storage
+        .from("prize-files")
+        .upload(fileName, file);
 
       if (error) throw error;
 
-      // Get public URL
-      const { data } = supabase.storage.from("prize-files").getPublicUrl(fileName);
+      const { data } = supabase.storage
+        .from("prize-files")
+        .getPublicUrl(fileName);
 
       if (data?.publicUrl) {
-        setEditData({
-          ...editData,
-          delivery_content: data.publicUrl,
-        });
-        toast.success("File uploaded successfully");
+        await handleAddContentItem(prizeId, data.publicUrl, file.name);
       }
     } catch (error) {
       console.error("Upload error:", error);
@@ -165,42 +243,104 @@ const PrizeManagement = () => {
                   </select>
                 </div>
 
-                <div>
-                  <label className="text-sm font-semibold text-foreground mb-2 block">
-                    Delivery Content (Link/URL)
-                  </label>
-                  <div className="space-y-2">
-                    {/* Link Input */}
-                    <Input
-                      value={editData?.delivery_content || ""}
-                      onChange={(e) =>
-                        setEditData({
-                          ...editData,
-                          delivery_content: e.target.value,
-                        })
-                      }
-                      placeholder="https://example.com/prize or paste link here"
-                      className="bg-white/10 border-white/20"
-                    />
+                {/* Content Pool Section */}
+                <div className="border-t border-white/10 pt-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <label className="text-sm font-semibold text-foreground">
+                      Content Pool (Multiple Items)
+                    </label>
+                    <span className="text-xs text-cyan-400">
+                      {contentPool.length} item{contentPool.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+
+                  {/* Existing Content Items */}
+                  <div className="space-y-2 mb-4">
+                    {contentPool.map((content, idx) => (
+                      <div
+                        key={content.id}
+                        className="flex items-center justify-between bg-white/5 border border-white/10 rounded p-3"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-cyan-400 font-semibold">
+                            {content.content_name || `Content ${idx + 1}`}
+                          </p>
+                          <p className="text-xs text-gray-400 truncate">
+                            {content.content_url}
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() =>
+                            handleDeleteContentItem(content.id, editData.id)
+                          }
+                          disabled={loading}
+                          size="sm"
+                          variant="outline"
+                          className="border-red-500 text-red-400 hover:bg-red-500/10 ml-2"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add New Content */}
+                  <div className="space-y-2 bg-white/5 border border-dashed border-white/20 rounded p-4">
+                    <p className="text-xs text-muted-foreground mb-2">Add Content Item:</p>
 
                     {/* File Upload */}
-                    <div className="flex gap-2">
-                      <label className="flex-1">
-                        <div className="cursor-pointer bg-white/10 border border-dashed border-white/20 rounded px-4 py-3 text-center hover:bg-white/20 transition">
-                          <Upload className="w-4 h-4 mx-auto mb-1 text-cyan-400" />
-                          <span className="text-sm text-foreground">{uploading ? "Uploading..." : "Upload File"}</span>
-                        </div>
-                        <input type="file" onChange={handleFileUpload} disabled={uploading} className="hidden" />
-                      </label>
-                    </div>
-
-                    {/* Show current link */}
-                    {editData?.delivery_content && (
-                      <div className="bg-white/5 border border-white/10 rounded p-2 break-all text-xs text-cyan-400">
-                        <LinkIcon className="w-3 h-3 inline mr-1" />
-                        {editData.delivery_content}
+                    <label className="flex-1">
+                      <div className="cursor-pointer bg-white/10 border border-dashed border-white/20 rounded px-4 py-3 text-center hover:bg-white/20 transition">
+                        <Upload className="w-4 h-4 mx-auto mb-1 text-cyan-400" />
+                        <span className="text-sm text-foreground">
+                          {uploading ? "Uploading..." : "Upload File"}
+                        </span>
                       </div>
-                    )}
+                      <input
+                        type="file"
+                        onChange={(e) => handleFileUpload(e, editData.id)}
+                        disabled={uploading}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {/* Or Link Input */}
+                    <div className="flex gap-2">
+                      <Input
+                        id={`link-${editData.id}`}
+                        placeholder="Or paste link here..."
+                        className="bg-white/10 border-white/20 text-xs"
+                      />
+                      <Input
+                        id={`name-${editData.id}`}
+                        placeholder="Name (optional)"
+                        className="bg-white/10 border-white/20 text-xs w-32"
+                      />
+                      <Button
+                        onClick={() => {
+                          const linkInput = document.getElementById(
+                            `link-${editData.id}`
+                          ) as HTMLInputElement;
+                          const nameInput = document.getElementById(
+                            `name-${editData.id}`
+                          ) as HTMLInputElement;
+                          if (linkInput?.value) {
+                            handleAddContentItem(
+                              editData.id,
+                              linkInput.value,
+                              nameInput?.value || ""
+                            );
+                            linkInput.value = "";
+                            nameInput.value = "";
+                          }
+                        }}
+                        disabled={loading}
+                        size="sm"
+                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 whitespace-nowrap"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -254,7 +394,7 @@ const PrizeManagement = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-4">
                   <Button
                     onClick={handleSave}
                     disabled={loading}
@@ -266,6 +406,7 @@ const PrizeManagement = () => {
                     onClick={() => {
                       setEditingId(null);
                       setEditData(null);
+                      setShowContentPool(null);
                     }}
                     variant="outline"
                     className="border-white/20"
@@ -281,16 +422,15 @@ const PrizeManagement = () => {
                   <h3 className="text-lg font-bold text-foreground">
                     {prize.emoji} {prize.name}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">Type: {prize.fulfillment_type || "automatic"}</p>
-                  {prize.delivery_content && (
-                    <div className="mt-2 text-xs text-cyan-400 break-all">
-                      <LinkIcon className="w-3 h-3 inline mr-1" />
-                      {prize.delivery_content.slice(0, 50)}
-                      {prize.delivery_content.length > 50 ? "..." : ""}
-                    </div>
-                  )}
-                  <div className="text-xs text-muted-foreground mt-2">
-                    Weights: Basic {prize.weight_basic} | Gold {prize.weight_gold} | VIP {prize.weight_vip}
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Type: {prize.fulfillment_type || "automatic"}
+                  </p>
+                  <div className="text-xs text-cyan-400 mt-2">
+                    📦 Content Pool Size: {contentPool.length}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Weights: Basic {prize.weight_basic} | Gold {prize.weight_gold} | VIP{" "}
+                    {prize.weight_vip}
                   </div>
                 </div>
                 <div className="flex gap-2">

@@ -316,7 +316,10 @@ const AdminAnalytics = () => {
                     </td>
                     <td className="py-3 px-4 text-foreground">{tx.prize_name || "-"}</td>
                     <td className="py-3 px-4 text-foreground font-semibold">
-                      ${(Number(tx.amount_paid) / 100).toFixed(2)}
+                      $
+                      {tx.amount_paid > 100
+                        ? (Number(tx.amount_paid) / 100).toFixed(2)
+                        : Number(tx.amount_paid).toFixed(2)}
                     </td>
                     <td className="py-3 px-4">
                       <span

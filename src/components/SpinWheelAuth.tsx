@@ -29,7 +29,7 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
   const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { playSpinStart, playSpinTicks, playWin, playClick } = useSounds();
+  const { playSpinStart, playSpinTicks, playWin } = useSounds();
 
   const colors = [
     "#1a5f7a", // Dark Teal (top)
@@ -369,10 +369,7 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
 
           {/* Center Spin Button - Yellow Neon */}
           <button
-            onClick={() => {
-              playClick();
-              spinWheel();
-            }}
+            onClick={spinWheel}
             disabled={isSpinning}
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 md:w-32 md:h-32 rounded-full text-black font-black text-2xl md:text-3xl hover:scale-110 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 z-10 border-4 border-yellow-300 min-h-[44px] min-w-[44px] touch-manipulation animate-yellow-glow"
             style={{

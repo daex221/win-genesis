@@ -1,34 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
 
 const PricingCards = () => {
-  const [loading, setLoading] = useState<string | null>(null);
-
-  const handleTierClick = async (tier: string, price: number) => {
-    try {
-      setLoading(tier);
-      toast.loading("Creating checkout session...");
-
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { tier },
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        // Open Stripe checkout in new tab
-        window.open(data.url, "_blank");
-        toast.success("Checkout opened in new tab!");
-      }
-    } catch (error) {
-      console.error("Checkout error:", error);
-      toast.error("Failed to create checkout session");
-    } finally {
-      setLoading(null);
-    }
+  const handleTierClick = (tier: string) => {
+    // Landing page is only for unauthenticated users
+    // Just redirect to auth - they'll sign in, then see authenticated page with wallet
+    window.location.href = "/auth";
   };
 
   const tiers = [
@@ -73,9 +50,7 @@ const PricingCards = () => {
 
           <div className="text-center mb-6">
             <h3 className="text-2xl font-bold text-foreground mb-2">{tier.name}</h3>
-            <div className="text-4xl font-bold text-foreground">
-              ${tier.price}
-            </div>
+            <div className="text-4xl font-bold text-foreground">${tier.price}</div>
             <p className="text-muted-foreground mt-2">
               {tier.name === "BASIC" && "Standard Prizes"}
               {tier.name === "GOLD" && "Better Chances"}
@@ -93,11 +68,10 @@ const PricingCards = () => {
           </ul>
 
           <Button
-            onClick={() => handleTierClick(tier.name.toLowerCase(), tier.price)}
-            disabled={loading === tier.name.toLowerCase()}
-            className={`w-full bg-gradient-to-r ${tier.buttonGradient} hover:scale-105 transition-transform font-bold text-lg py-6 rounded-full disabled:opacity-50`}
+            onClick={() => handleTierClick(tier.name.toLowerCase())}
+            className={`w-full bg-gradient-to-r ${tier.buttonGradient} hover:scale-105 transition-transform font-bold text-lg py-6 rounded-full`}
           >
-            {loading === tier.name.toLowerCase() ? "PROCESSING..." : "SPIN NOW →"}
+            SPIN NOW →
           </Button>
         </Card>
       ))}

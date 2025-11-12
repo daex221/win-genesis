@@ -43,7 +43,7 @@ const AdminAnalytics = () => {
       return;
     }
 
-    const totalRevenue = spins?.reduce((sum, spin) => sum + Number(spin.amount_paid), 0) || 0;
+    const totalRevenue = spins?.reduce((sum, spin) => sum + Number(spin.amount_paid) / 100, 0) || 0;
     const basicSpins = spins?.filter((s) => s.tier === "basic").length || 0;
     const goldSpins = spins?.filter((s) => s.tier === "gold").length || 0;
     const vipSpins = spins?.filter((s) => s.tier === "vip").length || 0;
@@ -135,7 +135,7 @@ const AdminAnalytics = () => {
       t.tier?.toUpperCase() || "N/A",
       t.prize_name || "N/A",
       `$${(Number(t.amount_paid) / 100).toFixed(2)}`,
-      t.fulfillment_status || "pending",
+      t.fulfillment_status === "completed" ? "Completed" : "Processed",
       new Date(t.created_at).toLocaleString(),
     ]);
 
@@ -172,7 +172,7 @@ const AdminAnalytics = () => {
         <Card className="p-6 bg-card glow-purple">
           <div className="text-muted-foreground mb-2">Average Per Spin</div>
           <div className="text-3xl font-bold text-foreground">
-            ${stats.totalSpins > 0 ? (stats.totalRevenue / stats.totalSpins / 100).toFixed(2) : "0.00"}
+            ${stats.totalSpins > 0 ? (stats.totalRevenue / stats.totalSpins).toFixed(2) : "0.00"}
           </div>
         </Card>
       </div>
@@ -327,7 +327,7 @@ const AdminAnalytics = () => {
                           tx.fulfillment_status === "completed" ? "text-green-400" : "text-yellow-400"
                         }`}
                       >
-                        {tx.fulfillment_status || "pending"}
+                        {tx.fulfillment_status === "completed" ? "Completed" : "Processed"}
                       </span>
                     </td>
                   </tr>

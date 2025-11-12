@@ -20,34 +20,34 @@ const PrizeManagement = () => {
   }, []);
 
   const fetchPrizes = async () => {
-    const { data, error } = await supabase
-      .from("prize_metadata")
-      .select("*")
-      .order("created_at", { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from("prize_metadata")
+        .select("*")
+        .order("created_at", { ascending: true });
 
-    if (error) {
+      if (error) throw error;
+      setPrizes(data || []);
+    } catch (error) {
       console.error("Error fetching prizes:", error);
       toast.error("Failed to load prizes");
-      return;
     }
-
-    setPrizes(data || []);
   };
 
   const fetchContentPool = async (prizeId: string) => {
-    const { data, error } = await supabase
-      .from("prize_content_pool")
-      .select("*")
-      .eq("prize_id", prizeId)
-      .order("sequence_order", { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from("prize_content_pool")
+        .select("*")
+        .eq("prize_id", prizeId)
+        .order("sequence_order", { ascending: true });
 
-    if (error) {
+      if (error) throw error;
+      setContentPool(data || []);
+    } catch (error) {
       console.error("Error fetching content pool:", error);
       toast.error("Failed to load content pool");
-      return;
     }
-
-    setContentPool(data || []);
   };
 
   const handleEdit = (prize: any) => {
@@ -64,6 +64,8 @@ const PrizeManagement = () => {
     }
 
     setLoading(true);
+    const toastId = toast.loading("Saving prize...");
+
     try {
       const { error } = await supabase
         .from("prize_metadata")
@@ -80,14 +82,17 @@ const PrizeManagement = () => {
 
       if (error) throw error;
 
-      toast.success("Prize updated successfully");
+      toast.dismiss(toastId);
+      toast.success("Prize saved successfully!");
       setEditingId(null);
       setEditData(null);
       setShowContentPool(null);
+      setContentPool([]);
       fetchPrizes();
     } catch (error) {
       console.error("Error saving prize:", error);
-      toast.error("Failed to save prize");
+      toast.dismiss(toastId);
+      toast.error("Failed to save prize: " + (error as any).message);
     } finally {
       setLoading(false);
     }
@@ -100,28 +105,28 @@ const PrizeManagement = () => {
     }
 
     setLoading(true);
-    try {
-      const maxSequence = contentPool.length > 0 
-        ? Math.max(...contentPool.map(c => c.sequence_order || 0))
-        : 0;
+    const toastId = toast.loading("Adding content...");
 
-      const { error } = await supabase
-        .from("prize_content_pool")
-        .insert({
-          prize_id: prizeId,
-          content_url: contentUrl,
-          content_name: contentName || `Content ${contentPool.length + 1}`,
-          sequence_order: maxSequence + 1,
-          is_active: true,
-        });
+    try {
+      const maxSequence = contentPool.length > 0 ? Math.max(...contentPool.map((c) => c.sequence_order || 0)) : 0;
+
+      const { error } = await supabase.from("prize_content_pool").insert({
+        prize_id: prizeId,
+        content_url: contentUrl,
+        content_name: contentName || `Content ${contentPool.length + 1}`,
+        sequence_order: maxSequence + 1,
+        is_active: true,
+      });
 
       if (error) throw error;
 
-      toast.success("Content added to pool");
+      toast.dismiss(toastId);
+      toast.success("Content added!");
       await fetchContentPool(prizeId);
     } catch (error) {
       console.error("Error adding content:", error);
-      toast.error("Failed to add content");
+      toast.dismiss(toastId);
+      toast.error("Failed to add content: " + (error as any).message);
     } finally {
       setLoading(false);
     }
@@ -131,18 +136,19 @@ const PrizeManagement = () => {
     if (!confirm("Delete this content item?")) return;
 
     setLoading(true);
+    const toastId = toast.loading("Deleting...");
+
     try {
-      const { error } = await supabase
-        .from("prize_content_pool")
-        .delete()
-        .eq("id", contentId);
+      const { error } = await supabase.from("prize_content_pool").delete().eq("id", contentId);
 
       if (error) throw error;
 
-      toast.success("Content deleted");
+      toast.dismiss(toastId);
+      toast.success("Content deleted!");
       await fetchContentPool(prizeId);
     } catch (error) {
       console.error("Error deleting content:", error);
+      toast.dismiss(toastId);
       toast.error("Failed to delete content");
     } finally {
       setLoading(false);
@@ -154,24 +160,24 @@ const PrizeManagement = () => {
     if (!file) return;
 
     setUploading(true);
+    const toastId = toast.loading("Uploading file...");
+
     try {
       const fileName = `${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage
-        .from("prize-files")
-        .upload(fileName, file);
+      const { error: uploadError } = await supabase.storage.from("prize-files").upload(fileName, file);
 
-      if (error) throw error;
+      if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage
-        .from("prize-files")
-        .getPublicUrl(fileName);
+      const { data } = supabase.storage.from("prize-files").getPublicUrl(fileName);
 
       if (data?.publicUrl) {
         await handleAddContentItem(prizeId, data.publicUrl, file.name);
+        toast.dismiss(toastId);
       }
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Failed to upload file");
+      toast.dismiss(toastId);
+      toast.error("Failed to upload file: " + (error as any).message);
     } finally {
       setUploading(false);
     }
@@ -181,15 +187,19 @@ const PrizeManagement = () => {
     if (!confirm("Are you sure you want to delete this prize?")) return;
 
     setLoading(true);
+    const toastId = toast.loading("Deleting prize...");
+
     try {
       const { error } = await supabase.from("prize_metadata").delete().eq("id", id);
 
       if (error) throw error;
 
-      toast.success("Prize deleted");
+      toast.dismiss(toastId);
+      toast.success("Prize deleted!");
       fetchPrizes();
     } catch (error) {
       console.error("Error deleting prize:", error);
+      toast.dismiss(toastId);
       toast.error("Failed to delete prize");
     } finally {
       setLoading(false);
@@ -211,7 +221,7 @@ const PrizeManagement = () => {
                   <Input
                     value={editData?.name || ""}
                     onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                    placeholder="e.g., Secret Photo Drop"
+                    placeholder="e.g., Mystery Video"
                     className="bg-white/10 border-white/20"
                   />
                 </div>
@@ -221,7 +231,7 @@ const PrizeManagement = () => {
                   <Input
                     value={editData?.emoji || ""}
                     onChange={(e) => setEditData({ ...editData, emoji: e.target.value })}
-                    placeholder="e.g., 💌"
+                    placeholder="e.g., 🎥"
                     className="bg-white/10 border-white/20 w-24"
                   />
                 </div>
@@ -243,12 +253,60 @@ const PrizeManagement = () => {
                   </select>
                 </div>
 
+                <div>
+                  <label className="text-sm font-semibold text-foreground mb-2 block">
+                    Weights (Probability per Tier)
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Basic</label>
+                      <Input
+                        type="number"
+                        value={editData?.weight_basic || 100}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            weight_basic: parseInt(e.target.value) || 100,
+                          })
+                        }
+                        className="bg-white/10 border-white/20 mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Gold</label>
+                      <Input
+                        type="number"
+                        value={editData?.weight_gold || 100}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            weight_gold: parseInt(e.target.value) || 100,
+                          })
+                        }
+                        className="bg-white/10 border-white/20 mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">VIP</label>
+                      <Input
+                        type="number"
+                        value={editData?.weight_vip || 100}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            weight_vip: parseInt(e.target.value) || 100,
+                          })
+                        }
+                        className="bg-white/10 border-white/20 mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Content Pool Section */}
                 <div className="border-t border-white/10 pt-4">
                   <div className="flex justify-between items-center mb-4">
-                    <label className="text-sm font-semibold text-foreground">
-                      Content Pool (Multiple Items)
-                    </label>
+                    <label className="text-sm font-semibold text-foreground">Content Pool (Multiple Items)</label>
                     <span className="text-xs text-cyan-400">
                       {contentPool.length} item{contentPool.length !== 1 ? "s" : ""}
                     </span>
@@ -265,14 +323,10 @@ const PrizeManagement = () => {
                           <p className="text-xs text-cyan-400 font-semibold">
                             {content.content_name || `Content ${idx + 1}`}
                           </p>
-                          <p className="text-xs text-gray-400 truncate">
-                            {content.content_url}
-                          </p>
+                          <p className="text-xs text-gray-400 truncate">{content.content_url}</p>
                         </div>
                         <Button
-                          onClick={() =>
-                            handleDeleteContentItem(content.id, editData.id)
-                          }
+                          onClick={() => handleDeleteContentItem(content.id, editData.id)}
                           disabled={loading}
                           size="sm"
                           variant="outline"
@@ -292,14 +346,12 @@ const PrizeManagement = () => {
                     <label className="flex-1">
                       <div className="cursor-pointer bg-white/10 border border-dashed border-white/20 rounded px-4 py-3 text-center hover:bg-white/20 transition">
                         <Upload className="w-4 h-4 mx-auto mb-1 text-cyan-400" />
-                        <span className="text-sm text-foreground">
-                          {uploading ? "Uploading..." : "Upload File"}
-                        </span>
+                        <span className="text-sm text-foreground">{uploading ? "Uploading..." : "Upload File"}</span>
                       </div>
                       <input
                         type="file"
                         onChange={(e) => handleFileUpload(e, editData.id)}
-                        disabled={uploading}
+                        disabled={uploading || loading}
                         className="hidden"
                       />
                     </label>
@@ -310,31 +362,25 @@ const PrizeManagement = () => {
                         id={`link-${editData.id}`}
                         placeholder="Or paste link here..."
                         className="bg-white/10 border-white/20 text-xs"
+                        disabled={loading}
                       />
                       <Input
                         id={`name-${editData.id}`}
                         placeholder="Name (optional)"
                         className="bg-white/10 border-white/20 text-xs w-32"
+                        disabled={loading}
                       />
                       <Button
                         onClick={() => {
-                          const linkInput = document.getElementById(
-                            `link-${editData.id}`
-                          ) as HTMLInputElement;
-                          const nameInput = document.getElementById(
-                            `name-${editData.id}`
-                          ) as HTMLInputElement;
+                          const linkInput = document.getElementById(`link-${editData.id}`) as HTMLInputElement;
+                          const nameInput = document.getElementById(`name-${editData.id}`) as HTMLInputElement;
                           if (linkInput?.value) {
-                            handleAddContentItem(
-                              editData.id,
-                              linkInput.value,
-                              nameInput?.value || ""
-                            );
+                            handleAddContentItem(editData.id, linkInput.value, nameInput?.value || "");
                             linkInput.value = "";
                             nameInput.value = "";
                           }
                         }}
-                        disabled={loading}
+                        disabled={loading || uploading}
                         size="sm"
                         className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 whitespace-nowrap"
                       >
@@ -344,60 +390,10 @@ const PrizeManagement = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-sm font-semibold text-foreground mb-2 block">
-                    Weights (Probability per Tier)
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="text-xs text-muted-foreground">Basic</label>
-                      <Input
-                        type="number"
-                        value={editData?.weight_basic || 100}
-                        onChange={(e) =>
-                          setEditData({
-                            ...editData,
-                            weight_basic: parseInt(e.target.value),
-                          })
-                        }
-                        className="bg-white/10 border-white/20 mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Gold</label>
-                      <Input
-                        type="number"
-                        value={editData?.weight_gold || 100}
-                        onChange={(e) =>
-                          setEditData({
-                            ...editData,
-                            weight_gold: parseInt(e.target.value),
-                          })
-                        }
-                        className="bg-white/10 border-white/20 mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">VIP</label>
-                      <Input
-                        type="number"
-                        value={editData?.weight_vip || 100}
-                        onChange={(e) =>
-                          setEditData({
-                            ...editData,
-                            weight_vip: parseInt(e.target.value),
-                          })
-                        }
-                        className="bg-white/10 border-white/20 mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 <div className="flex gap-2 pt-4">
                   <Button
                     onClick={handleSave}
-                    disabled={loading}
+                    disabled={loading || uploading}
                     className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                   >
                     {loading ? "Saving..." : "Save Changes"}
@@ -407,7 +403,9 @@ const PrizeManagement = () => {
                       setEditingId(null);
                       setEditData(null);
                       setShowContentPool(null);
+                      setContentPool([]);
                     }}
+                    disabled={loading || uploading}
                     variant="outline"
                     className="border-white/20"
                   >
@@ -422,15 +420,10 @@ const PrizeManagement = () => {
                   <h3 className="text-lg font-bold text-foreground">
                     {prize.emoji} {prize.name}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Type: {prize.fulfillment_type || "automatic"}
-                  </p>
-                  <div className="text-xs text-cyan-400 mt-2">
-                    📦 Content Pool Size: {contentPool.length}
-                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">Type: {prize.fulfillment_type || "automatic"}</p>
+                  <div className="text-xs text-cyan-400 mt-2">📦 Content Pool Size: {contentPool.length}</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    Weights: Basic {prize.weight_basic} | Gold {prize.weight_gold} | VIP{" "}
-                    {prize.weight_vip}
+                    Weights: Basic {prize.weight_basic} | Gold {prize.weight_gold} | VIP {prize.weight_vip}
                   </div>
                 </div>
                 <div className="flex gap-2">

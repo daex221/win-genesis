@@ -8,6 +8,8 @@ import PrizeManagement from "@/components/PrizeManagement";
 import ManualPrizeFulfillment from "@/components/ManualPrizeFulfillment";
 import UserManagement from "@/components/UserManagement";
 import UserMenu from "@/components/UserMenu";
+import ShoutOutManagement from "@/components/ShoutOutManagement";
+import AdminNotifications from "@/components/AdminNotifications";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
@@ -122,6 +124,8 @@ const Admin = () => {
           </div>
         </div>
         <AdminAnalytics />
+        <AdminNotifications />
+        <ShoutOutManagement />
         <UserManagement />
         <ManualPrizeFulfillment />
         <PrizeManagement />

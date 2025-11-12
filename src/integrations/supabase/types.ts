@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          message: string
+          spin_id: string | null
+          status: string | null
+          title: string
+          type: string
+          user_email: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          spin_id?: string | null
+          status?: string | null
+          title: string
+          type: string
+          user_email: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          spin_id?: string | null
+          status?: string | null
+          title?: string
+          type?: string
+          user_email?: string
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           created_at: string
@@ -164,6 +200,42 @@ export type Database = {
         }
         Relationships: []
       }
+      shout_out_requests: {
+        Row: {
+          audio_url: string | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          message: string
+          spin_id: string | null
+          status: string | null
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          audio_url?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          spin_id?: string | null
+          status?: string | null
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          audio_url?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          spin_id?: string | null
+          status?: string | null
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       spins: {
         Row: {
           amount_paid: number
@@ -241,6 +313,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_prize_history: {
+        Row: {
+          content_id: string | null
+          content_url: string | null
+          id: string
+          prize_id: string
+          received_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content_id?: string | null
+          content_url?: string | null
+          id?: string
+          prize_id: string
+          received_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content_id?: string | null
+          content_url?: string | null
+          id?: string
+          prize_id?: string
+          received_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_prize_history_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "prize_content_pool"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_prize_history_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "prize_metadata"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           app_role: string
@@ -258,6 +372,39 @@ export type Database = {
           app_role?: string
           created_at?: string
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vouchers: {
+        Row: {
+          created_at: string | null
+          discount_percent: number
+          expires_at: string | null
+          id: string
+          tier: string | null
+          used: boolean | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          discount_percent?: number
+          expires_at?: string | null
+          id?: string
+          tier?: string | null
+          used?: boolean | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          discount_percent?: number
+          expires_at?: string | null
+          id?: string
+          tier?: string | null
+          used?: boolean | null
+          used_at?: string | null
           user_id?: string
         }
         Relationships: []

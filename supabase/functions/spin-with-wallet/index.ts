@@ -12,6 +12,10 @@ const SPIN_COSTS = {
   vip: 50,
 };
 
+// Prize names that trigger special actions
+const DISCOUNT_PRIZE_NAME = "20% Off";
+const SHOUTOUT_PRIZE_NAME = "Custom Shout-Out";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -55,8 +59,29 @@ serve(async (req) => {
       );
     }
 
-    const cost = SPIN_COSTS[tier as keyof typeof SPIN_COSTS];
-    console.log("[SPIN-WITH-WALLET] Spin requested for tier:", tier, "cost:", cost);
+    let cost = SPIN_COSTS[tier as keyof typeof SPIN_COSTS];
+    
+    // FEATURE 1: Check for active voucher
+    const { data: activeVoucher } = await supabaseClient
+      .from("vouchers")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("used", false)
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+
+    let voucherApplied = false;
+    let originalCost = cost;
+
+    if (activeVoucher) {
+      const discount = activeVoucher.discount_percent / 100;
+      cost = Math.round(cost * (1 - discount));
+      voucherApplied = true;
+      console.log("[SPIN-WITH-WALLET] Voucher applied:", activeVoucher.discount_percent, "% off. Original:", originalCost, "New:", cost);
+    }
+
+    console.log("[SPIN-WITH-WALLET] Spin requested for tier:", tier, "cost:", cost, "voucher:", voucherApplied ? "YES" : "NO");
 
     // Get or create wallet
     let { data: wallet, error: walletError } = await supabaseClient
@@ -160,22 +185,42 @@ serve(async (req) => {
     const selectedIndex = prizeMetadata.findIndex(p => p.id === selectedPrize.id);
     console.log("[SPIN-WITH-WALLET] Selected prize:", selectedPrize.name, "at index:", selectedIndex);
 
-    // Get content pool for this prize
+    // FEATURE 5: Get content pool with rotation (avoid repeats)
     const { data: contentPool, error: contentError } = await supabaseClient
       .from("prize_content_pool")
       .select("*")
       .eq("prize_id", selectedPrize.id)
       .eq("is_active", true);
 
+    // Get user's prize history to avoid duplicates
+    const { data: userHistory } = await supabaseClient
+      .from("user_prize_history")
+      .select("content_id")
+      .eq("user_id", user.id)
+      .eq("prize_id", selectedPrize.id);
+
+    const usedContentIds = new Set(userHistory?.map(h => h.content_id).filter(Boolean) || []);
+
     // Pick random content from pool or fall back to prize_delivery
     let prizeContent = "";
     let contentName = "Prize Content";
+    let selectedContentId: string | null = null;
 
     if (contentPool && contentPool.length > 0) {
-      const randomContent = contentPool[Math.floor(Math.random() * contentPool.length)];
+      // Filter out already received content
+      let availableContent = contentPool.filter(c => !usedContentIds.has(c.id));
+      
+      // If all exhausted, start fresh rotation
+      if (availableContent.length === 0) {
+        console.log("[SPIN-WITH-WALLET] All content exhausted, starting fresh rotation");
+        availableContent = contentPool;
+      }
+
+      const randomContent = availableContent[Math.floor(Math.random() * availableContent.length)];
       prizeContent = randomContent.content_url;
       contentName = randomContent.content_name || "Prize Content";
-      console.log("[SPIN-WITH-WALLET] Selected content from pool:", contentName);
+      selectedContentId = randomContent.id;
+      console.log("[SPIN-WITH-WALLET] Selected content from pool:", contentName, "Used before:", usedContentIds.has(randomContent.id));
     } else {
       // Fall back to prize_delivery table
       const { data: deliveryData, error: deliveryError } = await supabaseClient
@@ -195,6 +240,18 @@ serve(async (req) => {
       console.log("[SPIN-WITH-WALLET] Using fallback delivery content");
     }
 
+    // Mark voucher as used if one was applied
+    if (voucherApplied && activeVoucher) {
+      await supabaseClient
+        .from("vouchers")
+        .update({ 
+          used: true, 
+          used_at: new Date().toISOString() 
+        })
+        .eq("id", activeVoucher.id);
+      console.log("[SPIN-WITH-WALLET] Voucher marked as used:", activeVoucher.id);
+    }
+
     // Deduct balance
     const newBalance = Number(wallet.balance) - cost;
     const { error: updateError } = await supabaseClient
@@ -211,6 +268,10 @@ serve(async (req) => {
     }
 
     // Record wallet transaction
+    const transactionDesc = voucherApplied 
+      ? `Spin - ${tier.toUpperCase()} tier (${activeVoucher.discount_percent}% off applied)`
+      : `Spin - ${tier.toUpperCase()} tier`;
+    
     await supabaseClient
       .from("wallet_transactions")
       .insert({
@@ -218,7 +279,7 @@ serve(async (req) => {
         user_id: user.id,
         amount: -cost,
         type: "debit",
-        description: `Spin - ${tier.toUpperCase()} tier`,
+        description: transactionDesc,
       });
 
     // Record the spin
@@ -230,6 +291,7 @@ serve(async (req) => {
         token_hash: `wallet_${Date.now()}_${user.id}`,
         email: user.email!,
         amount_paid: cost,
+        fulfillment_status: "pending",
       })
       .select()
       .single();
@@ -242,32 +304,70 @@ serve(async (req) => {
       );
     }
 
+    // FEATURE 5: Record prize history for content rotation
+    if (selectedContentId) {
+      await supabaseClient
+        .from("user_prize_history")
+        .insert({
+          user_id: user.id,
+          prize_id: selectedPrize.id,
+          content_id: selectedContentId,
+          content_url: prizeContent,
+        });
+    }
+
+    // FEATURE 1: Create voucher if won "20% Off" prize
+    if (selectedPrize.name === DISCOUNT_PRIZE_NAME) {
+      console.log("[SPIN-WITH-WALLET] Creating 20% discount voucher");
+      await supabaseClient
+        .from("vouchers")
+        .insert({
+          user_id: user.id,
+          discount_percent: 20,
+          tier: null, // Works on any tier
+          used: false,
+        });
+    }
+
+    // FEATURE 3: Create shout-out request if won custom shout-out
+    if (selectedPrize.name === SHOUTOUT_PRIZE_NAME) {
+      console.log("[SPIN-WITH-WALLET] Creating shout-out request");
+      await supabaseClient
+        .from("shout_out_requests")
+        .insert({
+          user_id: user.id,
+          user_email: user.email!,
+          spin_id: spinRecord.id,
+          message: prizeContent || "Please record my custom shout-out!",
+          status: "pending",
+        });
+    }
+
     // Handle prize delivery based on fulfillment type
     console.log("[SPIN-WITH-WALLET] Prize fulfillment type:", selectedPrize.fulfillment_type);
     
+    let fulfillmentSuccess = false;
+
     try {
       if (selectedPrize.fulfillment_type === "manual") {
-        // Send manual prize notification
-        console.log("[SPIN-WITH-WALLET] Sending manual prize notification");
-        await supabaseClient.functions.invoke("notify-manual-prize", {
-          body: {
-            email: user.email!,
-            userName: user.email!.split("@")[0],
-            prizeName: selectedPrize.name,
-            prizeEmoji: selectedPrize.emoji,
-            prizeId: selectedPrize.id,
-            spinId: spinRecord.id,
-            transactionId: `TX-${spinRecord.id.substring(0, 8)}`,
-            wonAt: new Date().toISOString(),
-            tier,
-            amountPaid: cost,
-            fulfillmentInstructions: prizeContent,
-          },
-        });
+        // FEATURE 6: Create admin notification (replace N8N)
+        console.log("[SPIN-WITH-WALLET] Creating admin notification for manual prize");
+        await supabaseClient
+          .from("admin_notifications")
+          .insert({
+            type: "manual_prize",
+            title: `Manual Prize: ${selectedPrize.name}`,
+            message: `User ${user.email} won "${selectedPrize.name}" - requires manual fulfillment`,
+            spin_id: spinRecord.id,
+            user_email: user.email!,
+            status: "pending",
+          });
+        
+        fulfillmentSuccess = true;
       } else {
         // Send automatic prize email
         console.log("[SPIN-WITH-WALLET] Sending automatic prize email");
-        await supabaseClient.functions.invoke("send-prize-email", {
+        const emailResult = await supabaseClient.functions.invoke("send-prize-email", {
           body: {
             email: user.email!,
             userName: user.email!.split("@")[0],
@@ -278,10 +378,26 @@ serve(async (req) => {
             spinId: spinRecord.id,
           },
         });
+        
+        if (!emailResult.error) {
+          fulfillmentSuccess = true;
+        }
       }
     } catch (deliveryError) {
       console.error("[SPIN-WITH-WALLET] Prize delivery error (non-blocking):", deliveryError);
       // Don't block the spin result even if email fails
+    }
+
+    // FEATURE 4: Update fulfillment status if delivery was successful
+    if (fulfillmentSuccess) {
+      await supabaseClient
+        .from("spins")
+        .update({ 
+          fulfillment_status: selectedPrize.fulfillment_type === "manual" ? "pending" : "completed",
+          fulfilled_at: selectedPrize.fulfillment_type === "automatic" ? new Date().toISOString() : null,
+        })
+        .eq("id", spinRecord.id);
+      console.log("[SPIN-WITH-WALLET] Fulfillment status updated");
     }
 
     console.log("[SPIN-WITH-WALLET] Spin successful, new balance:", newBalance);

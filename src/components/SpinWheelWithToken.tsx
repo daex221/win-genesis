@@ -24,14 +24,14 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
   const { playSpinStart, playSpinTicks, playWin, playClick, playBackgroundMusic } = useSounds();
 
   const colors = [
-    "#1a4d7a", // Deep Blue
-    "#00d4ff", // Cyan
-    "#00ff00", // Bright Green
+    "#1a5f7a", // Dark Teal (top)
+    "#0d7377", // Teal/Cyan
     "#ffff00", // Yellow
-    "#ff6600", // Orange
-    "#ff0080", // Red/Magenta
-    "#9900ff", // Purple
-    "#001a4d"  // Dark Blue
+    "#8b0000", // Dark Red
+    "#00bcd4", // Cyan
+    "#dc143c", // Crimson Red
+    "#2d4a6b", // Dark Blue
+    "#1a5f7a"  // Dark Teal
   ];
 
   const particleColors = ["#00d4ff", "#00ff00", "#ffff00", "#ff6600", "#ff0080", "#9900ff"];
@@ -232,15 +232,16 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
           }}
         />
 
-        {/* Wheel wrapper with neon glow */}
+        {/* Wheel wrapper with rainbow neon glow */}
         <div 
           className="w-full h-full rounded-full animate-pulse-glow"
           style={{
             boxShadow: `
-              0 0 10px rgba(0, 212, 255, 0.5),
-              0 0 20px rgba(0, 212, 255, 0.3),
-              0 0 30px rgba(0, 212, 255, 0.2),
-              inset 0 0 10px rgba(0, 212, 255, 0.1),
+              0 0 15px rgba(0, 212, 255, 0.6),
+              0 0 30px rgba(0, 255, 0, 0.4),
+              0 0 45px rgba(255, 0, 128, 0.4),
+              0 0 60px rgba(153, 0, 255, 0.3),
+              inset 0 0 15px rgba(0, 212, 255, 0.2),
               0 20px 60px rgba(0, 0, 0, 0.5)
             `,
           }}

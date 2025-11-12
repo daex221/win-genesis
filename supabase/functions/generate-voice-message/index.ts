@@ -35,8 +35,8 @@ serve(async (req) => {
       );
     }
 
-    // Use provided voiceId or default to a pleasant voice
-    const selectedVoiceId = voiceId || "9BWtsMINqrJLrRacOk9x"; // Aria voice
+    // Use provided voiceId or default to specified voice
+    const selectedVoiceId = voiceId || "qFxVfZCiteIk9eM7FvbO";
 
     console.log("[GENERATE-VOICE] Generating audio with ElevenLabs for:", userEmail);
 

@@ -23,9 +23,18 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
   const { playSpinStart, playSpinTicks, playWin, playClick, playBackgroundMusic } = useSounds();
 
   const colors = [
-    "#ec4899", "#3b82f6", "#8b5cf6", "#06b6d4",
-    "#10b981", "#f59e0b", "#ef4444", "#fbbf24"
+    "#1a4d7a", // Deep Blue
+    "#00d4ff", // Cyan
+    "#00ff00", // Bright Green
+    "#ffff00", // Yellow
+    "#ff6600", // Orange
+    "#ff0080", // Red/Magenta
+    "#9900ff", // Purple
+    "#001a4d"  // Dark Blue
   ];
+
+  const particleColors = ["#00d4ff", "#00ff00", "#ffff00", "#ff6600", "#ff0080", "#9900ff"];
+  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; color: string; drift: number }>>([]);
 
   // Fetch prizes on mount
   useEffect(() => {
@@ -47,6 +56,46 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
 
     fetchPrizes();
   }, []);
+
+  // Particle system
+  useEffect(() => {
+    let animationFrame: number;
+    let lastSpawn = 0;
+    const spawnInterval = 200; // ms between spawns
+
+    const createParticle = () => {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 160 + Math.random() * 20;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      const color = particleColors[Math.floor(Math.random() * particleColors.length)];
+      const drift = (Math.random() - 0.5) * 40;
+
+      return {
+        id: Date.now() + Math.random(),
+        x,
+        y,
+        color,
+        drift
+      };
+    };
+
+    const animate = (timestamp: number) => {
+      if (timestamp - lastSpawn > spawnInterval && particles.length < 20) {
+        lastSpawn = timestamp;
+        setParticles(prev => [...prev, createParticle()]);
+      }
+
+      // Clean up old particles
+      setParticles(prev => prev.filter(p => Date.now() - p.id < 3500));
+
+      animationFrame = requestAnimationFrame(animate);
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [particles.length]);
 
   // Draw wheel when prizes change
   useEffect(() => {
@@ -81,9 +130,16 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
       ctx.fillStyle = colors[index % colors.length];
       ctx.fill();
 
+      // Draw subtle gradient overlay for depth
+      const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
       // Draw border
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.lineWidth = 3;
       ctx.stroke();
 
       // Draw emoji and text
@@ -164,24 +220,39 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
         </div>
       ) : (
         <div className="relative w-[320px] h-[320px] md:w-[450px] md:h-[450px]">
-        {/* Triangle Pointer */}
+        {/* Particles */}
+        {particles.map(particle => (
+          <div
+            key={particle.id}
+            className="absolute top-1/2 left-1/2 w-3 h-3 rounded-full animate-particle pointer-events-none"
+            style={{
+              backgroundColor: particle.color,
+              boxShadow: `0 0 8px ${particle.color}`,
+              transform: `translate(${particle.x}px, ${particle.y}px)`,
+              '--drift': `${particle.drift}px`,
+            } as any}
+          />
+        ))}
+
+        {/* Triangle Pointer - Cyan Neon */}
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 w-0 h-0 z-20"
+          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 w-0 h-0 z-20 animate-neon-pulse"
           style={{
             borderLeft: "20px solid transparent",
             borderRight: "20px solid transparent",
-            borderTop: "30px solid #FFD700",
-            filter: "drop-shadow(0 4px 10px rgba(255, 215, 0, 0.8))",
+            borderTop: "30px solid #00d4ff",
           }}
         />
 
-        {/* Wheel wrapper with enhanced glow */}
+        {/* Wheel wrapper with neon glow */}
         <div 
           className="w-full h-full rounded-full animate-pulse-glow"
           style={{
             boxShadow: `
-              0 0 40px rgba(0, 217, 255, 0.4),
-              0 0 80px rgba(0, 217, 255, 0.2),
+              0 0 10px rgba(0, 212, 255, 0.5),
+              0 0 20px rgba(0, 212, 255, 0.3),
+              0 0 30px rgba(0, 212, 255, 0.2),
+              inset 0 0 10px rgba(0, 212, 255, 0.1),
               0 20px 60px rgba(0, 0, 0, 0.5)
             `,
           }}
@@ -198,7 +269,7 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
             }}
           />
 
-          {/* Center Button */}
+          {/* Center Button - Yellow Neon Glow */}
           <button
             onClick={() => {
               playClick();
@@ -209,9 +280,9 @@ const SpinWheel = ({ onPrizeWon }: SpinWheelProps) => {
               spinWheel();
             }}
             disabled={isSpinning}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 text-white font-black text-2xl md:text-3xl hover:scale-110 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 z-10 border-4 border-white min-h-[44px] min-w-[44px] touch-manipulation"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 md:w-32 md:h-32 rounded-full text-black font-black text-2xl md:text-3xl hover:scale-110 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 z-10 border-4 border-yellow-300 min-h-[44px] min-w-[44px] touch-manipulation animate-yellow-glow"
             style={{
-              boxShadow: "0 0 30px rgba(255, 215, 0, 0.6), 0 10px 40px rgba(0, 0, 0, 0.4)"
+              background: "linear-gradient(135deg, #ffff00, #ffdd00)",
             }}
           >
             {isSpinning ? "..." : "SPIN"}

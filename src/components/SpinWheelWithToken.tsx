@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSounds } from "@/hooks/useSounds";
@@ -20,11 +20,69 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [musicStarted, setMusicStarted] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playSpinStart, playSpinTicks, playWin, playClick, playBackgroundMusic } = useSounds();
+
+  const colors = [
+    "#1a4d7a", // Deep Blue
+    "#00d4ff", // Cyan
+    "#00ff00", // Bright Green
+    "#ffff00", // Yellow
+    "#ff6600", // Orange
+    "#ff0080", // Red/Magenta
+    "#9900ff", // Purple
+    "#001a4d"  // Dark Blue
+  ];
+
+  const particleColors = ["#00d4ff", "#00ff00", "#ffff00", "#ff6600", "#ff0080", "#9900ff"];
+  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; color: string; drift: number }>>([]);
 
   useEffect(() => {
     fetchPrizes();
   }, []);
+
+  useEffect(() => {
+    if (prizes.length > 0 && canvasRef.current) {
+      drawWheel();
+    }
+  }, [prizes]);
+
+  // Particle system
+  useEffect(() => {
+    let animationFrame: number;
+    let lastSpawn = 0;
+    const spawnInterval = 200;
+
+    const createParticle = () => {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 160 + Math.random() * 20;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      const color = particleColors[Math.floor(Math.random() * particleColors.length)];
+      const drift = (Math.random() - 0.5) * 40;
+
+      return {
+        id: Date.now() + Math.random(),
+        x,
+        y,
+        color,
+        drift
+      };
+    };
+
+    const animate = (timestamp: number) => {
+      if (timestamp - lastSpawn > spawnInterval && particles.length < 20) {
+        lastSpawn = timestamp;
+        setParticles(prev => [...prev, createParticle()]);
+      }
+
+      setParticles(prev => prev.filter(p => Date.now() - p.id < 3500));
+      animationFrame = requestAnimationFrame(animate);
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [particles.length]);
 
   const fetchPrizes = async () => {
     try {
@@ -41,31 +99,92 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
     }
   };
 
+  const drawWheel = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = canvas.width / 2 - 10;
+    const sliceAngle = (2 * Math.PI) / prizes.length;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    prizes.forEach((prize, index) => {
+      const startAngle = index * sliceAngle;
+      const endAngle = startAngle + sliceAngle;
+
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fillStyle = colors[index % colors.length];
+      ctx.fill();
+
+      // Gradient overlay
+      const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Draw text
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(startAngle + sliceAngle / 2);
+      ctx.textAlign = "center";
+      
+      ctx.font = "32px Arial";
+      ctx.fillText(prize.emoji, radius / 1.7, -10);
+      
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 14px Arial";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+      ctx.shadowBlur = 4;
+      ctx.fillText(prize.name, radius / 1.7, 15);
+      
+      ctx.restore();
+    });
+  };
+
   const spinWheel = async () => {
     if (isSpinning || !token) return;
 
     setIsSpinning(true);
-    
-    // Play spin sounds
     playSpinStart();
     playSpinTicks(4000);
 
     try {
-      // Call the spin-prize edge function with the real token
       const { data, error } = await supabase.functions.invoke("spin-prize", {
         body: { token, tier },
       });
 
       if (error) throw error;
 
-      // Calculate rotation based on won prize
       const prizeIndex = prizes.findIndex((p) => p.id === data.id);
       const segmentAngle = 360 / prizes.length;
-      const targetRotation = 360 * 5 + (360 - prizeIndex * segmentAngle);
+      const prizeCenterAngle = prizeIndex * segmentAngle + (segmentAngle / 2);
+      const targetAngle = 270 - prizeCenterAngle;
+      
+      const currentNormalizedRotation = rotation % 360;
+      let rotationDelta = targetAngle - currentNormalizedRotation;
+      
+      if (rotationDelta < 0) {
+        rotationDelta += 360;
+      }
+      
+      const extraSpins = 3 + Math.floor(Math.random() * 3);
+      const finalRotation = rotation + rotationDelta + (extraSpins * 360);
 
-      setRotation(targetRotation);
+      setRotation(finalRotation);
 
-      // Wait for animation to complete
       setTimeout(() => {
         setIsSpinning(false);
         playWin();
@@ -80,68 +199,64 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
 
   if (prizes.length === 0) {
     return (
-      <div className="text-center p-8">
-        <p className="text-muted-foreground">Loading prizes...</p>
+      <div className="w-[320px] h-[320px] md:w-[450px] md:h-[450px] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  const segmentAngle = 360 / prizes.length;
-  const colors = [
-    "from-red-500 to-red-600",
-    "from-blue-500 to-blue-600",
-    "from-green-500 to-green-600",
-    "from-yellow-500 to-yellow-600",
-    "from-purple-500 to-purple-600",
-    "from-pink-500 to-pink-600",
-  ];
-
   return (
-    <div className="relative w-full max-w-2xl mx-auto">
-      <div className="relative w-full aspect-square mb-8">
-        <div className="absolute inset-0 rounded-full glow-primary animate-pulse"></div>
+    <div className="flex flex-col items-center gap-6">
+      <div className="relative w-[320px] h-[320px] md:w-[450px] md:h-[450px]">
+        {/* Particles */}
+        {particles.map(particle => (
+          <div
+            key={particle.id}
+            className="absolute top-1/2 left-1/2 w-3 h-3 rounded-full animate-particle pointer-events-none"
+            style={{
+              backgroundColor: particle.color,
+              boxShadow: `0 0 8px ${particle.color}`,
+              transform: `translate(${particle.x}px, ${particle.y}px)`,
+              '--drift': `${particle.drift}px`,
+            } as any}
+          />
+        ))}
 
+        {/* Triangle Pointer - Cyan Neon */}
         <div
-          className="relative w-full h-full rounded-full shadow-2xl transition-transform duration-[4000ms] ease-out"
+          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 w-0 h-0 z-20 animate-neon-pulse"
           style={{
-            transform: `rotate(${rotation}deg)`,
-            background: "conic-gradient(from 0deg, #8B5CF6, #EC4899, #8B5CF6)",
+            borderLeft: "20px solid transparent",
+            borderRight: "20px solid transparent",
+            borderTop: "30px solid #00d4ff",
+          }}
+        />
+
+        {/* Wheel wrapper with neon glow */}
+        <div 
+          className="w-full h-full rounded-full animate-pulse-glow"
+          style={{
+            boxShadow: `
+              0 0 10px rgba(0, 212, 255, 0.5),
+              0 0 20px rgba(0, 212, 255, 0.3),
+              0 0 30px rgba(0, 212, 255, 0.2),
+              inset 0 0 10px rgba(0, 212, 255, 0.1),
+              0 20px 60px rgba(0, 0, 0, 0.5)
+            `,
           }}
         >
-          {prizes.map((prize, index) => {
-            const angle = index * segmentAngle;
-            const gradientClass = colors[index % colors.length];
+          <canvas
+            ref={canvasRef}
+            width={450}
+            height={450}
+            className="w-full h-full rounded-full"
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              transition: isSpinning ? "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
+            }}
+          />
 
-            return (
-              <div
-                key={prize.id}
-                className={`absolute inset-0 flex items-start justify-center`}
-                style={{
-                  transform: `rotate(${angle}deg)`,
-                  clipPath: `polygon(50% 50%, 50% 0%, ${
-                    50 + 50 * Math.sin((segmentAngle * Math.PI) / 180)
-                  }% ${50 - 50 * Math.cos((segmentAngle * Math.PI) / 180)}%)`,
-                }}
-              >
-                <div
-                  className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-start justify-center pt-8`}
-                >
-                  <div
-                    className="flex flex-col items-center gap-1"
-                    style={{
-                      transform: `rotate(${segmentAngle / 2}deg)`,
-                    }}
-                  >
-                    <div className="text-3xl md:text-4xl">{prize.emoji}</div>
-                    <div className="text-sm md:text-base font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-tight text-center px-2">
-                      {prize.name}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
+          {/* Center Button - Yellow Neon Glow */}
           <button
             onClick={() => {
               playClick();
@@ -152,18 +267,19 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
               spinWheel();
             }}
             disabled={isSpinning}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-gold to-gold/80 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed text-gold-foreground font-bold text-2xl px-12 py-6 rounded-full shadow-lg transition-transform z-10"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 md:w-32 md:h-32 rounded-full text-black font-black text-2xl md:text-3xl hover:scale-110 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 z-10 border-4 border-yellow-300 min-h-[44px] min-w-[44px] touch-manipulation animate-yellow-glow"
+            style={{
+              background: "linear-gradient(135deg, #ffff00, #ffdd00)",
+            }}
           >
-            {isSpinning ? "SPINNING..." : "SPIN!"}
+            {isSpinning ? "..." : "SPIN"}
           </button>
         </div>
-
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 w-0 h-0 border-l-[20px] border-l-transparent border-r-[20px] border-r-transparent border-t-[40px] border-t-primary z-20"></div>
       </div>
 
-      <div className="text-center">
-        <p className="text-sm text-muted-foreground">
-          Tier: <span className="font-bold text-foreground">{tier.toUpperCase()}</span>
+      <div className="text-center bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 px-8 py-4">
+        <p className="text-white text-sm">
+          Tier: <span className="font-bold">{tier.toUpperCase()}</span>
         </p>
       </div>
     </div>

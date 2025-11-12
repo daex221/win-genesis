@@ -132,19 +132,70 @@ All colors MUST be HSL.
     background-clip: text;
   }
 
-  /* Pulse glow animation */
+  /* Neon animations */
   @keyframes pulse-glow {
     0%, 100% {
-      opacity: 1;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.5),
+                  0 0 40px rgba(0, 212, 255, 0.3),
+                  0 0 60px rgba(0, 212, 255, 0.2);
     }
     50% {
-      opacity: 0.5;
+      box-shadow: 0 0 30px rgba(0, 212, 255, 0.8),
+                  0 0 60px rgba(0, 212, 255, 0.5),
+                  0 0 90px rgba(0, 212, 255, 0.3);
     }
   }
 
-  .animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
+  @keyframes neon-pulse {
+    0%, 100% {
+      filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.6))
+              drop-shadow(0 0 20px rgba(0, 212, 255, 0.4));
+    }
+    50% {
+      filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.9))
+              drop-shadow(0 0 40px rgba(0, 212, 255, 0.6));
+    }
   }
+
+  @keyframes yellow-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(255, 255, 0, 0.6),
+                  0 0 40px rgba(255, 255, 0, 0.4),
+                  0 10px 40px rgba(0, 0, 0, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(255, 255, 0, 0.9),
+                  0 0 60px rgba(255, 255, 0, 0.6),
+                  0 10px 50px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  @keyframes particle-float {
+    0% {
+      transform: translateY(0) translateX(0);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-200px) translateX(var(--drift, 20px));
+      opacity: 0;
+    }
+  }
+
+.animate-pulse-glow {
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.animate-neon-pulse {
+  animation: neon-pulse 1.5s linear infinite;
+}
+
+.animate-yellow-glow {
+  animation: yellow-glow 1.5s ease-in-out infinite;
+}
+
+.animate-particle {
+  animation: particle-float 3.5s ease-out forwards;
+}
 
   /* Spin animation */
   @keyframes spin-wheel {

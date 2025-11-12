@@ -76,7 +76,7 @@ const PrizeManagement = () => {
           weight_basic: editData.weight_basic || 100,
           weight_gold: editData.weight_gold || 100,
           weight_vip: editData.weight_vip || 100,
-          is_active: editData.is_active !== false,
+          active: editData.active !== false,
         })
         .eq("id", editingId);
 

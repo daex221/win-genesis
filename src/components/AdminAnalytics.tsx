@@ -158,7 +158,7 @@ const AdminAnalytics = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="p-6 bg-card glow-gold">
           <div className="text-muted-foreground mb-2">Total Revenue</div>
-          <div className="text-3xl font-bold text-foreground">${stats.totalRevenue.toFixed(2)}</div>
+          <div className="text-3xl font-bold text-foreground">${(stats.totalRevenue / 100).toFixed(2)}</div>
         </Card>
 
         <Card className="p-6 bg-card glow-blue">

@@ -69,10 +69,7 @@ const Auth = () => {
           setShowProfileDialog(true);
         } else {
           toast.success("Logged in successfully!");
-          // Small delay to ensure session is fully established
-          setTimeout(() => {
-            window.location.href = redirectTo;
-          }, 100);
+          navigate(redirectTo);
         }
       } else {
         const { error } = await supabase.auth.signUp({

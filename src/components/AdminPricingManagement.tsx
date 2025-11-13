@@ -33,19 +33,15 @@ const AdminPricingManagement = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const fetchPricing = async () => {
-    const { data, error } = await supabase
-      .from("pricing_config")
-      .select("tier, price, stripe_price_id")
-      .eq("active", true)
-      .order("price", { ascending: true });
-
-    if (error) {
-      console.error("Error fetching pricing:", error);
-      toast.error("Failed to load pricing");
-      return;
-    }
-
-    setPricing(data || []);
+    // TODO: Create pricing_config table in database
+    // For now, using hardcoded values
+    const hardcodedPricing: PricingConfig[] = [
+      { tier: 'basic', price: 2, stripe_price_id: 'price_basic' },
+      { tier: 'gold', price: 5, stripe_price_id: 'price_gold' },
+      { tier: 'vip', price: 10, stripe_price_id: 'price_vip' },
+    ];
+    setPricing(hardcodedPricing);
+    console.warn("[AdminPricingManagement] Using hardcoded pricing - pricing_config table does not exist yet");
   };
 
   useEffect(() => {

@@ -6,21 +6,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Fetch prices from database instead of hardcoding
+// Get spin cost based on tier (hardcoded for now)
 async function getSpinCost(supabaseClient: any, tier: string): Promise<number> {
-  const { data, error } = await supabaseClient
-    .from("pricing_config")
-    .select("price")
-    .eq("tier", tier)
-    .eq("active", true)
-    .single();
+  // TODO: Create pricing_config table to store dynamic pricing
+  const pricing: Record<string, number> = {
+    basic: 2,
+    gold: 5,
+    vip: 10,
+  };
 
-  if (error || !data) {
-    console.error("[SPIN-WITH-WALLET] Error fetching pricing:", error);
-    throw new Error("Failed to fetch pricing");
+  const cost = pricing[tier];
+  if (!cost) {
+    console.error("[SPIN-WITH-WALLET] Invalid tier for pricing:", tier);
+    throw new Error("Invalid tier");
   }
 
-  return Number(data.price);
+  return cost;
 }
 
 serve(async (req) => {

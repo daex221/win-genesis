@@ -6,11 +6,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SPIN_COSTS = {
-  basic: 15,
-  gold: 30,
-  vip: 50,
-};
+// Fetch prices from database instead of hardcoding
+async function getSpinCost(supabaseClient: any, tier: string): Promise<number> {
+  const { data, error } = await supabaseClient
+    .from("pricing_config")
+    .select("price")
+    .eq("tier", tier)
+    .eq("active", true)
+    .single();
+
+  if (error || !data) {
+    console.error("[SPIN-WITH-WALLET] Error fetching pricing:", error);
+    throw new Error("Failed to fetch pricing");
+  }
+
+  return Number(data.price);
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -55,7 +66,7 @@ serve(async (req) => {
       );
     }
 
-    const cost = SPIN_COSTS[tier as keyof typeof SPIN_COSTS];
+    const cost = await getSpinCost(supabaseClient, tier);
     console.log("[SPIN-WITH-WALLET] Spin requested for tier:", tier, "cost:", cost);
 
     // Get or create wallet
@@ -145,7 +156,7 @@ serve(async (req) => {
     // Fetch delivery content for the selected prize (using service role)
     const { data: deliveryData, error: deliveryError } = await supabaseClient
       .from("prize_delivery")
-      .select("delivery_content")
+      .select("is_tier_specific, delivery_content_basic, delivery_content_gold, delivery_content_vip, delivery_content_legacy")
       .eq("prize_id", selectedPrize.id)
       .single();
 
@@ -155,6 +166,31 @@ serve(async (req) => {
         JSON.stringify({ error: "Failed to retrieve prize details" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Determine the appropriate content based on tier
+    let deliveryContent: string;
+
+    if (deliveryData.is_tier_specific) {
+      // Use tier-specific content
+      switch (tier) {
+        case "basic":
+          deliveryContent = deliveryData.delivery_content_basic;
+          break;
+        case "gold":
+          deliveryContent = deliveryData.delivery_content_gold;
+          break;
+        case "vip":
+          deliveryContent = deliveryData.delivery_content_vip;
+          break;
+        default:
+          deliveryContent = deliveryData.delivery_content_basic;
+      }
+      console.log(`[SPIN-WITH-WALLET] Using tier-specific content for ${tier} tier`);
+    } else {
+      // Use shared content (backward compatibility)
+      deliveryContent = deliveryData.delivery_content_basic || deliveryData.delivery_content_legacy;
+      console.log("[SPIN-WITH-WALLET] Using shared content for all tiers");
     }
 
     // Deduct balance
@@ -200,6 +236,36 @@ serve(async (req) => {
 
     console.log("[SPIN-WITH-WALLET] Spin successful, new balance:", newBalance);
 
+    // Send prize email via SendGrid
+    try {
+      const emailResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-prize-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          email: user.email,
+          prizeData: {
+            name: selectedPrize.name,
+            emoji: selectedPrize.emoji,
+            delivery_content: deliveryContent,
+            type: selectedPrize.type,
+          },
+          tier,
+        }),
+      });
+
+      if (emailResponse.ok) {
+        console.log("[SPIN-WITH-WALLET] Prize email sent to", user.email);
+      } else {
+        console.error("[SPIN-WITH-WALLET] Failed to send prize email:", await emailResponse.text());
+      }
+    } catch (emailError) {
+      console.error("[SPIN-WITH-WALLET] Error sending prize email:", emailError);
+      // Don't fail the spin if email fails
+    }
+
     return new Response(
       JSON.stringify({
         prize: {
@@ -207,7 +273,7 @@ serve(async (req) => {
           name: selectedPrize.name,
           emoji: selectedPrize.emoji,
           type: selectedPrize.type,
-          delivery_content: deliveryData.delivery_content,
+          delivery_content: deliveryContent,
         },
         newBalance: newBalance,
       }),

@@ -2,10 +2,96 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+interface Tier {
+  name: string;
+  price: number;
+  badge: string | null;
+  glowColor: string;
+  features: string[];
+  buttonGradient: string;
+}
 
 const PricingCards = () => {
   const [loading, setLoading] = useState<string | null>(null);
+  const [tiers, setTiers] = useState<Tier[]>([]);
+  const [fetchingPrices, setFetchingPrices] = useState(true);
+
+  // Fetch pricing from API
+  useEffect(() => {
+    const fetchPricing = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("get-pricing");
+
+        if (error) throw error;
+
+        const pricing = data.pricing;
+
+        // Map pricing to tier configuration
+        setTiers([
+          {
+            name: "BASIC",
+            price: pricing.basic?.price || 15,
+            badge: null,
+            glowColor: "glow-blue",
+            features: ["Instant delivery", "Email reward", "Fun surprises"],
+            buttonGradient: "from-green-500 to-green-600",
+          },
+          {
+            name: "GOLD",
+            price: pricing.gold?.price || 30,
+            badge: "⭐ POPULAR",
+            glowColor: "glow-gold",
+            features: ["Better prizes", "Bonus spin chance", "Priority delivery"],
+            buttonGradient: "from-gold to-gold/80",
+          },
+          {
+            name: "VIP",
+            price: pricing.vip?.price || 50,
+            badge: "Premium Tier",
+            glowColor: "glow-purple",
+            features: ["Exclusive prizes", "Guaranteed high-value", "VIP perks"],
+            buttonGradient: "from-primary to-primary/80",
+          },
+        ]);
+      } catch (error) {
+        console.error("Error fetching pricing:", error);
+        toast.error("Failed to load pricing");
+        // Fallback to default prices
+        setTiers([
+          {
+            name: "BASIC",
+            price: 15,
+            badge: null,
+            glowColor: "glow-blue",
+            features: ["Instant delivery", "Email reward", "Fun surprises"],
+            buttonGradient: "from-green-500 to-green-600",
+          },
+          {
+            name: "GOLD",
+            price: 30,
+            badge: "⭐ POPULAR",
+            glowColor: "glow-gold",
+            features: ["Better prizes", "Bonus spin chance", "Priority delivery"],
+            buttonGradient: "from-gold to-gold/80",
+          },
+          {
+            name: "VIP",
+            price: 50,
+            badge: "Premium Tier",
+            glowColor: "glow-purple",
+            features: ["Exclusive prizes", "Guaranteed high-value", "VIP perks"],
+            buttonGradient: "from-primary to-primary/80",
+          },
+        ]);
+      } finally {
+        setFetchingPrices(false);
+      }
+    };
+
+    fetchPricing();
+  }, []);
 
   const handleTierClick = async (tier: string, price: number) => {
     try {
@@ -31,32 +117,17 @@ const PricingCards = () => {
     }
   };
 
-  const tiers = [
-    {
-      name: "BASIC",
-      price: 15,
-      badge: null,
-      glowColor: "glow-blue",
-      features: ["Instant delivery", "Email reward", "Fun surprises"],
-      buttonGradient: "from-green-500 to-green-600",
-    },
-    {
-      name: "GOLD",
-      price: 30,
-      badge: "⭐ POPULAR",
-      glowColor: "glow-gold",
-      features: ["Better prizes", "Bonus spin chance", "Priority delivery"],
-      buttonGradient: "from-gold to-gold/80",
-    },
-    {
-      name: "VIP",
-      price: 50,
-      badge: "Premium Tier",
-      glowColor: "glow-purple",
-      features: ["Exclusive prizes", "Guaranteed high-value", "VIP perks"],
-      buttonGradient: "from-primary to-primary/80",
-    },
-  ];
+  if (fetchingPrices) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="p-8 animate-pulse bg-card/50">
+            <div className="h-48 bg-muted/20 rounded" />
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">

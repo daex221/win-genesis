@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import AdminAnalytics from "@/components/AdminAnalytics";
-import PrizeManagement from "@/components/PrizeManagement";
+import EnhancedPrizeManagement from "@/components/EnhancedPrizeManagement";
+import AdminPricingManagement from "@/components/AdminPricingManagement";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
@@ -108,7 +109,12 @@ const Admin = () => {
         </div>
 
         <AdminAnalytics />
-        <PrizeManagement />
+        <div className="mt-12">
+          <AdminPricingManagement />
+        </div>
+        <div className="mt-12">
+          <EnhancedPrizeManagement />
+        </div>
       </div>
     </div>
   );

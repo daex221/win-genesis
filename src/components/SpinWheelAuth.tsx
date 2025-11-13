@@ -18,7 +18,8 @@ interface SpinWheelAuthProps {
   onBalanceChange: () => void;
 }
 
-const SPIN_COSTS = {
+// Spin costs will be fetched from API - default fallback values
+const DEFAULT_SPIN_COSTS = {
   basic: 15,
   gold: 30,
   vip: 50,
@@ -29,6 +30,7 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
   const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
   const [musicStarted, setMusicStarted] = useState(false);
+  const [spinCost, setSpinCost] = useState(DEFAULT_SPIN_COSTS[tier]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playSpinStart, playSpinTicks, playWin, playClick, playBackgroundMusic } = useSounds();
 
@@ -48,6 +50,27 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
     "Bonus Spin": Zap,
   };
 
+  // Fetch pricing
+  useEffect(() => {
+    const fetchPricing = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("get-pricing");
+        if (error) throw error;
+
+        const pricing = data.pricing;
+        if (pricing && pricing[tier]) {
+          setSpinCost(pricing[tier].price);
+        }
+      } catch (error) {
+        console.error("Error fetching pricing:", error);
+        // Use default fallback
+        setSpinCost(DEFAULT_SPIN_COSTS[tier]);
+      }
+    };
+
+    fetchPricing();
+  }, [tier]);
+
   useEffect(() => {
     const fetchPrizes = async () => {
       const { data, error } = await supabase.from("prize_metadata").select("id, name, emoji").eq("active", true).order("id");
@@ -66,10 +89,10 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
     }
   }, [prizes]);
 
-  const sendPrizeWebhook = async (prizeData: { name: string; emoji: string }) => {
+  const sendPrizeWebhook = async (prizeData: { name: string; emoji: string; delivery_content?: string }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       const payload = {
         userId: user?.id || 'unknown',
         email: user?.email || '',
@@ -77,13 +100,18 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
         telegram: user?.user_metadata?.telegram || '',
         instagram: user?.user_metadata?.instagram || '',
         prizeWon: prizeData.name,
+        prizeEmoji: prizeData.emoji,
+        deliveryContent: prizeData.delivery_content || '',  // ✅ Now includes video link!
         tier: tier,
-        spinCost: SPIN_COSTS[tier],
+        spinCost: spinCost,
         transactionId: `spin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         timestamp: new Date().toISOString()
       };
 
-      const auth = btoa('daevo:12345678');
+      // Using environment variables for webhook auth (still exposed in frontend - consider moving to backend)
+      const username = import.meta.env.VITE_WEBHOOK_USERNAME || '';
+      const password = import.meta.env.VITE_WEBHOOK_PASSWORD || '';
+      const auth = btoa(`${username}:${password}`);
       
       const response = await fetch('https://daex2212.app.n8n.cloud/webhook/prize-delivery', {
         method: 'POST',
@@ -157,7 +185,7 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
   const spinWheel = async () => {
     if (isSpinning || prizes.length === 0) return;
 
-    const cost = SPIN_COSTS[tier];
+    const cost = spinCost;
     if (balance < cost) {
       toast.error(`Insufficient balance! Need $${cost}, have $${balance.toFixed(2)}`);
       return;
@@ -242,9 +270,13 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
         toast.dismiss();
         playWin();
         
-        // Send webhook notification
-        await sendPrizeWebhook({ name: wonPrize.name, emoji: wonPrize.emoji });
-        
+        // Send webhook notification with delivery content
+        await sendPrizeWebhook({
+          name: wonPrize.name,
+          emoji: wonPrize.emoji,
+          delivery_content: wonPrize.delivery_content  // ✅ Pass video link to webhook
+        });
+
         // Trigger confetti
         confetti({
           particleCount: 150,
@@ -334,7 +366,7 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
       {/* Balance info */}
       <div className="text-center bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 px-8 py-4">
         <p className="text-white text-lg font-semibold mb-1">
-          {tier.toUpperCase()} Tier - ${SPIN_COSTS[tier]} per spin
+          {tier.toUpperCase()} Tier - ${spinCost} per spin
         </p>
         <p className="text-5xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
           ${balance.toFixed(2)}

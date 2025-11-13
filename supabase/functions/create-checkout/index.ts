@@ -7,12 +7,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Price IDs for each tier
-const PRICE_IDS = {
-  basic: "price_1SQv6AHjsWcGd0CyeT7T7CVr",
-  gold: "price_1SQv6aHjsWcGd0CyPpsIdS8t",
-  vip: "price_1SQv6oHjsWcGd0Cyz8SdGPzQ",
-};
+// Fetch Stripe price ID from database instead of hardcoding
+async function getStripePriceId(tier: string): Promise<string> {
+  const supabaseClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+  );
+
+  const { data, error } = await supabaseClient
+    .from("pricing_config")
+    .select("stripe_price_id")
+    .eq("tier", tier)
+    .eq("active", true)
+    .single();
+
+  if (error || !data) {
+    console.error("[CREATE-CHECKOUT] Error fetching pricing:", error);
+    throw new Error("Failed to fetch pricing configuration");
+  }
+
+  return data.stripe_price_id;
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -24,8 +39,8 @@ serve(async (req) => {
     console.log("[CREATE-CHECKOUT] Function started");
 
     const { tier } = await req.json();
-    
-    if (!tier || !PRICE_IDS[tier as keyof typeof PRICE_IDS]) {
+
+    if (!tier || !["basic", "gold", "vip"].includes(tier)) {
       throw new Error("Invalid tier provided");
     }
 
@@ -35,7 +50,7 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const priceId = PRICE_IDS[tier as keyof typeof PRICE_IDS];
+    const priceId = await getStripePriceId(tier);
     const origin = req.headers.get("origin") || "http://localhost:8080";
 
     // Create checkout session with tier in metadata

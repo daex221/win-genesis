@@ -186,7 +186,7 @@ serve(async (req) => {
     // Fetch delivery content for the selected prize (using service role)
     const { data: deliveryData, error: deliveryError } = await supabaseClient
       .from("prize_delivery")
-      .select("delivery_content")
+      .select("is_tier_specific, delivery_content_basic, delivery_content_gold, delivery_content_vip, delivery_content_legacy")
       .eq("prize_id", selectedPrize.id)
       .single();
 
@@ -196,6 +196,31 @@ serve(async (req) => {
         JSON.stringify({ error: "Failed to retrieve prize details" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Determine the appropriate content based on tier
+    let deliveryContent: string;
+
+    if (deliveryData.is_tier_specific) {
+      // Use tier-specific content
+      switch (tier) {
+        case "basic":
+          deliveryContent = deliveryData.delivery_content_basic;
+          break;
+        case "gold":
+          deliveryContent = deliveryData.delivery_content_gold;
+          break;
+        case "vip":
+          deliveryContent = deliveryData.delivery_content_vip;
+          break;
+        default:
+          deliveryContent = deliveryData.delivery_content_basic;
+      }
+      console.log(`[SPIN-PRIZE] Using tier-specific content for ${tier} tier`);
+    } else {
+      // Use shared content (backward compatibility)
+      deliveryContent = deliveryData.delivery_content_basic || deliveryData.delivery_content_legacy;
+      console.log("[SPIN-PRIZE] Using shared content for all tiers");
     }
 
     // Record the spin (using service role, bypasses RLS)
@@ -220,6 +245,36 @@ serve(async (req) => {
 
     console.log("[SPIN-PRIZE] Spin recorded successfully");
 
+    // Send prize email via SendGrid
+    try {
+      const emailResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-prize-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          email: transaction.email,
+          prizeData: {
+            name: selectedPrize.name,
+            emoji: selectedPrize.emoji,
+            delivery_content: deliveryContent,
+            type: selectedPrize.type,
+          },
+          tier,
+        }),
+      });
+
+      if (emailResponse.ok) {
+        console.log("[SPIN-PRIZE] Prize email sent to", transaction.email);
+      } else {
+        console.error("[SPIN-PRIZE] Failed to send prize email:", await emailResponse.text());
+      }
+    } catch (emailError) {
+      console.error("[SPIN-PRIZE] Error sending prize email:", emailError);
+      // Don't fail the spin if email fails
+    }
+
     // Return prize info INCLUDING delivery_content since payment is verified
     return new Response(
       JSON.stringify({
@@ -227,7 +282,7 @@ serve(async (req) => {
         name: selectedPrize.name,
         emoji: selectedPrize.emoji,
         type: selectedPrize.type,
-        delivery_content: deliveryData.delivery_content,
+        delivery_content: deliveryContent,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

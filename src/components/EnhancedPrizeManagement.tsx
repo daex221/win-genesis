@@ -70,12 +70,15 @@ const EnhancedPrizeManagement = () => {
       // Fetch delivery content (admin-only access)
       const { data: delivery, error: deliveryError } = await supabase
         .from("prize_delivery")
-        .select("prize_id, delivery_content");
+        .select("prize_id, delivery_content_basic, delivery_content_gold, delivery_content_vip");
 
       if (deliveryError) throw deliveryError;
 
       // Combine data and check which prizes have delivery content
-      const deliveryMap = new Map(delivery?.map(d => [d.prize_id, d.delivery_content]) || []);
+      const deliveryMap = new Map(delivery?.map(d => [
+        d.prize_id, 
+        d.delivery_content_basic || d.delivery_content_gold || d.delivery_content_vip
+      ]) || []);
 
       const prizesWithContent = metadata?.map(prize => ({
         ...prize,
@@ -389,9 +392,9 @@ const EnhancedPrizeManagement = () => {
                   <div className="flex items-center gap-2">
                     <div className="font-bold text-foreground">{prize.name}</div>
                     {prize.has_delivery_content ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" title="Has delivery content" />
+                      <CheckCircle className="w-4 h-4 text-green-500" />
                     ) : (
-                      <AlertCircle className="w-4 h-4 text-orange-500" title="Missing delivery content" />
+                      <AlertCircle className="w-4 h-4 text-orange-500" />
                     )}
                   </div>
                   <div className="text-sm text-muted-foreground">

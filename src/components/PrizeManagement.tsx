@@ -14,6 +14,7 @@ const PrizeManagement = () => {
   const [contentPool, setContentPool] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [showContentPool, setShowContentPool] = useState<string | null>(null);
+  const [addingContent, setAddingContent] = useState(false);
 
   useEffect(() => {
     fetchPrizes();
@@ -104,31 +105,37 @@ const PrizeManagement = () => {
       return;
     }
 
-    setLoading(true);
+    setAddingContent(true);
     const toastId = toast.loading("Adding content...");
 
     try {
+      console.log("Adding content:", { prizeId, contentUrl, contentName });
+      
       const maxSequence = contentPool.length > 0 ? Math.max(...contentPool.map((c) => c.sequence_order || 0)) : 0;
 
-      const { error } = await supabase.from("prize_content_pool").insert({
+      const { data, error } = await supabase.from("prize_content_pool").insert({
         prize_id: prizeId,
-        content_url: contentUrl,
-        content_name: contentName || `Content ${contentPool.length + 1}`,
+        content_url: contentUrl.trim(),
+        content_name: contentName?.trim() || `Content ${contentPool.length + 1}`,
         sequence_order: maxSequence + 1,
         is_active: true,
-      });
+      }).select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error:", error);
+        throw error;
+      }
 
+      console.log("Content added successfully:", data);
       toast.dismiss(toastId);
       toast.success("Content added!");
       await fetchContentPool(prizeId);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding content:", error);
       toast.dismiss(toastId);
-      toast.error("Failed to add content: " + (error as any).message);
+      toast.error(error.message || "Failed to add content");
     } finally {
-      setLoading(false);
+      setAddingContent(false);
     }
   };
 
@@ -362,13 +369,24 @@ const PrizeManagement = () => {
                         id={`link-${editData.id}`}
                         placeholder="Or paste link here..."
                         className="bg-white/10 border-white/20 text-xs"
-                        disabled={loading}
+                        disabled={addingContent}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const linkInput = e.currentTarget;
+                            const nameInput = document.getElementById(`name-${editData.id}`) as HTMLInputElement;
+                            if (linkInput.value) {
+                              handleAddContentItem(editData.id, linkInput.value, nameInput?.value || "");
+                              linkInput.value = "";
+                              if (nameInput) nameInput.value = "";
+                            }
+                          }
+                        }}
                       />
                       <Input
                         id={`name-${editData.id}`}
                         placeholder="Name (optional)"
                         className="bg-white/10 border-white/20 text-xs w-32"
-                        disabled={loading}
+                        disabled={addingContent}
                       />
                       <Button
                         onClick={() => {
@@ -378,13 +396,15 @@ const PrizeManagement = () => {
                             handleAddContentItem(editData.id, linkInput.value, nameInput?.value || "");
                             linkInput.value = "";
                             nameInput.value = "";
+                          } else {
+                            toast.error("Please enter a link");
                           }
                         }}
-                        disabled={loading || uploading}
+                        disabled={addingContent || uploading}
                         size="sm"
                         className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 whitespace-nowrap"
                       >
-                        <Plus className="w-3 h-3" />
+                        {addingContent ? "..." : <Plus className="w-3 h-3" />}
                       </Button>
                     </div>
                   </div>

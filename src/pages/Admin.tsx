@@ -4,13 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import AdminAnalytics from "@/components/AdminAnalytics";
+import PrizeManagement from "@/components/PrizeManagement";
 import EnhancedPrizeManagement from "@/components/EnhancedPrizeManagement";
 import AdminPricingManagement from "@/components/AdminPricingManagement";
-import AdminTransactions from "@/components/AdminTransactions";
+import ManualPrizeFulfillment from "@/components/ManualPrizeFulfillment";
+import UserManagement from "@/components/UserManagement";
+import UserMenu from "@/components/UserMenu";
+import ShoutOutManagement from "@/components/ShoutOutManagement";
 import AdminNotifications from "@/components/AdminNotifications";
-import AdminShoutouts from "@/components/AdminShoutouts";
-import AdminUserManagement from "@/components/AdminUserManagement";
-import AdminPendingPrizes from "@/components/AdminPendingPrizes";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
@@ -21,26 +22,11 @@ const Admin = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkAdminStatus();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await checkAdminStatus();
-        } else {
-          setIsAdmin(false);
-          setLoading(false);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const checkAdminStatus = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
+    // Check initial session
+    const initializeAdmin = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (!session?.user) {
         setLoading(false);
@@ -49,18 +35,43 @@ const Admin = () => {
       }
 
       setUser(session.user);
+      await verifyAdminRole(session.user.id);
+    };
 
+    initializeAdmin();
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        await verifyAdminRole(session.user.id);
+      } else {
+        setUser(null);
+        setIsAdmin(false);
+        setLoading(false);
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const verifyAdminRole = async (userId: string) => {
+    try {
       const { data, error } = await supabase
         .from("user_roles")
         .select("app_role")
-        .eq("user_id", session.user.id)
+        .eq("user_id", userId)
         .eq("app_role", "admin")
         .maybeSingle();
 
       if (error) {
-        console.error("Error checking admin status:", error);
+        console.error("Error checking admin role:", error);
         toast.error("Error checking admin status");
         setLoading(false);
+        setIsAdmin(false);
         navigate("/");
         return;
       }
@@ -68,6 +79,7 @@ const Admin = () => {
       if (!data) {
         toast.error("Access denied. Admin privileges required.");
         setLoading(false);
+        setIsAdmin(false);
         navigate("/");
         return;
       }
@@ -75,8 +87,8 @@ const Admin = () => {
       setIsAdmin(true);
       setLoading(false);
     } catch (error) {
-      console.error("Unexpected error in checkAdminStatus:", error);
-      toast.error("An error occurred. Please try again.");
+      console.error("Unexpected error:", error);
+      toast.error("An unexpected error occurred");
       setLoading(false);
       navigate("/");
     }
@@ -106,38 +118,23 @@ const Admin = () => {
       <div className="relative z-10 container mx-auto px-4 py-12">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-foreground">Admin Dashboard</h1>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => navigate("/")}
-              variant="outline"
-              className="rounded-full"
-            >
+          <div className="flex gap-3 items-center">
+            <Button onClick={() => navigate("/")} variant="outline" className="rounded-full">
               ← Back to App
             </Button>
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="rounded-full"
-            >
-              Logout
-            </Button>
+            {user && <UserMenu user={user} onLogout={handleLogout} />}
           </div>
         </div>
-
         <AdminAnalytics />
-        
         <AdminNotifications />
-        
-        <AdminPendingPrizes />
-        
-        <AdminShoutouts />
-        
-        <AdminTransactions />
-        
-        <AdminUserManagement />
-        
+        <ShoutOutManagement />
+        <UserManagement />
+        <ManualPrizeFulfillment />
         <div className="mt-12">
           <AdminPricingManagement />
+        </div>
+        <div className="mt-12">
+          <PrizeManagement />
         </div>
         <div className="mt-12">
           <EnhancedPrizeManagement />

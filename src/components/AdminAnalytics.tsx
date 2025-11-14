@@ -27,11 +27,13 @@ const AdminAnalytics = () => {
   const [revenueByDate, setRevenueByDate] = useState<Array<{ date: string; revenue: number; spins: number }>>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [timeframe, setTimeframe] = useState<"7d" | "30d" | "all">("7d");
+  const [displayedTransactions, setDisplayedTransactions] = useState(8);
 
   useEffect(() => {
     fetchStats();
     fetchRevenueByDate();
     fetchTransactions();
+    setDisplayedTransactions(8); // Reset to 8 when timeframe changes
   }, [timeframe]);
 
   const fetchStats = async () => {
@@ -298,7 +300,7 @@ const AdminAnalytics = () => {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((tx, idx) => (
+                {transactions.slice(0, displayedTransactions).map((tx, idx) => (
                   <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition">
                     <td className="py-3 px-4 text-foreground">{new Date(tx.created_at).toLocaleDateString()}</td>
                     <td className="py-3 px-4">
@@ -337,6 +339,18 @@ const AdminAnalytics = () => {
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">No transactions yet</div>
+        )}
+
+        {transactions.length > displayedTransactions && (
+          <div className="mt-4 text-center">
+            <Button
+              onClick={() => setDisplayedTransactions(displayedTransactions + 8)}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              Load More ({transactions.length - displayedTransactions} remaining)
+            </Button>
+          </div>
         )}
       </Card>
     </div>

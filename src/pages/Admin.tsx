@@ -6,6 +6,11 @@ import { Card } from "@/components/ui/card";
 import AdminAnalytics from "@/components/AdminAnalytics";
 import EnhancedPrizeManagement from "@/components/EnhancedPrizeManagement";
 import AdminPricingManagement from "@/components/AdminPricingManagement";
+import AdminTransactions from "@/components/AdminTransactions";
+import AdminNotifications from "@/components/AdminNotifications";
+import AdminShoutouts from "@/components/AdminShoutouts";
+import AdminUserManagement from "@/components/AdminUserManagement";
+import AdminPendingPrizes from "@/components/AdminPendingPrizes";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
@@ -120,6 +125,17 @@ const Admin = () => {
         </div>
 
         <AdminAnalytics />
+        
+        <AdminNotifications />
+        
+        <AdminPendingPrizes />
+        
+        <AdminShoutouts />
+        
+        <AdminTransactions />
+        
+        <AdminUserManagement />
+        
         <div className="mt-12">
           <AdminPricingManagement />
         </div>

@@ -34,36 +34,47 @@ const Admin = () => {
   }, []);
 
   const checkAdminStatus = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session?.user) {
-      navigate("/auth");
-      return;
-    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
 
-    setUser(session.user);
+      if (!session?.user) {
+        setLoading(false);
+        navigate("/auth");
+        return;
+      }
 
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("app_role")
-      .eq("user_id", session.user.id)
-      .eq("app_role", "admin")
-      .maybeSingle();
+      setUser(session.user);
 
-    if (error) {
-      toast.error("Error checking admin status");
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("app_role")
+        .eq("user_id", session.user.id)
+        .eq("app_role", "admin")
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error checking admin status:", error);
+        toast.error("Error checking admin status");
+        setLoading(false);
+        navigate("/");
+        return;
+      }
+
+      if (!data) {
+        toast.error("Access denied. Admin privileges required.");
+        setLoading(false);
+        navigate("/");
+        return;
+      }
+
+      setIsAdmin(true);
       setLoading(false);
-      return;
-    }
-
-    if (!data) {
-      toast.error("Access denied. Admin privileges required.");
+    } catch (error) {
+      console.error("Unexpected error in checkAdminStatus:", error);
+      toast.error("An error occurred. Please try again.");
+      setLoading(false);
       navigate("/");
-      return;
     }
-
-    setIsAdmin(true);
-    setLoading(false);
   };
 
   const handleLogout = async () => {

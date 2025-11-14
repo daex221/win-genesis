@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import AdminAnalytics from "@/components/AdminAnalytics";
 import PrizeManagement from "@/components/PrizeManagement";
-import EnhancedPrizeManagement from "@/components/EnhancedPrizeManagement";
 import AdminPricingManagement from "@/components/AdminPricingManagement";
 import ManualPrizeFulfillment from "@/components/ManualPrizeFulfillment";
 import UserManagement from "@/components/UserManagement";
@@ -22,11 +21,26 @@ const Admin = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check initial session
-    const initializeAdmin = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    checkAdminStatus();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await checkAdminStatus();
+        } else {
+          setIsAdmin(false);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const checkAdminStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
 
       if (!session?.user) {
         setLoading(false);
@@ -35,43 +49,18 @@ const Admin = () => {
       }
 
       setUser(session.user);
-      await verifyAdminRole(session.user.id);
-    };
 
-    initializeAdmin();
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-        await verifyAdminRole(session.user.id);
-      } else {
-        setUser(null);
-        setIsAdmin(false);
-        setLoading(false);
-        navigate("/auth");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const verifyAdminRole = async (userId: string) => {
-    try {
       const { data, error } = await supabase
         .from("user_roles")
         .select("app_role")
-        .eq("user_id", userId)
+        .eq("user_id", session.user.id)
         .eq("app_role", "admin")
         .maybeSingle();
 
       if (error) {
-        console.error("Error checking admin role:", error);
+        console.error("Error checking admin status:", error);
         toast.error("Error checking admin status");
         setLoading(false);
-        setIsAdmin(false);
         navigate("/");
         return;
       }
@@ -79,7 +68,6 @@ const Admin = () => {
       if (!data) {
         toast.error("Access denied. Admin privileges required.");
         setLoading(false);
-        setIsAdmin(false);
         navigate("/");
         return;
       }
@@ -87,8 +75,8 @@ const Admin = () => {
       setIsAdmin(true);
       setLoading(false);
     } catch (error) {
-      console.error("Unexpected error:", error);
-      toast.error("An unexpected error occurred");
+      console.error("Unexpected error in checkAdminStatus:", error);
+      toast.error("An error occurred. Please try again.");
       setLoading(false);
       navigate("/");
     }
@@ -135,9 +123,6 @@ const Admin = () => {
         </div>
         <div className="mt-12">
           <PrizeManagement />
-        </div>
-        <div className="mt-12">
-          <EnhancedPrizeManagement />
         </div>
       </div>
     </div>

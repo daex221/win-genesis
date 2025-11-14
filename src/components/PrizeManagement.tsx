@@ -14,6 +14,7 @@ const PrizeManagement = () => {
   const [contentPool, setContentPool] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [showContentPool, setShowContentPool] = useState<string | null>(null);
+  const [contentCounts, setContentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchPrizes();
@@ -32,6 +33,19 @@ const PrizeManagement = () => {
     }
 
     setPrizes(data || []);
+
+    // Fetch content counts for all prizes
+    if (data && data.length > 0) {
+      const counts: Record<string, number> = {};
+      for (const prize of data) {
+        const { count } = await supabase
+          .from("prize_content_pool")
+          .select("*", { count: "exact", head: true })
+          .eq("prize_id", prize.id);
+        counts[prize.id] = count || 0;
+      }
+      setContentCounts(counts);
+    }
   };
 
   const fetchContentPool = async (prizeId: string) => {
@@ -119,6 +133,11 @@ const PrizeManagement = () => {
 
       toast.success("Content added to pool");
       await fetchContentPool(prizeId);
+      // Update content count
+      setContentCounts(prev => ({
+        ...prev,
+        [prizeId]: (prev[prizeId] || 0) + 1
+      }));
     } catch (error) {
       console.error("Error adding content:", error);
       toast.error("Failed to add content");
@@ -141,6 +160,11 @@ const PrizeManagement = () => {
 
       toast.success("Content deleted");
       await fetchContentPool(prizeId);
+      // Update content count
+      setContentCounts(prev => ({
+        ...prev,
+        [prizeId]: Math.max((prev[prizeId] || 0) - 1, 0)
+      }));
     } catch (error) {
       console.error("Error deleting content:", error);
       toast.error("Failed to delete content");
@@ -422,11 +446,13 @@ const PrizeManagement = () => {
                   <h3 className="text-lg font-bold text-foreground">
                     {prize.emoji} {prize.name}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <div className="flex items-center gap-3 mt-1">
+                    <p className="text-sm text-muted-foreground">
                     Type: {prize.fulfillment_type || "automatic"}
                   </p>
-                  <div className="text-xs text-cyan-400 mt-2">
-                    📦 Content Pool Size: {contentPool.length}
+                    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-cyan-500/20 text-cyan-400">
+                      📦 {contentCounts[prize.id] || 0} content items
+                    </span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     Weights: Basic {prize.weight_basic} | Gold {prize.weight_gold} | VIP{" "}

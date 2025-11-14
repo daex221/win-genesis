@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { DollarSign, Edit, Save, X } from "lucide-react";
+import { Zap, Edit, Save, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,89 +13,70 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface PricingConfig {
+interface SpinCostConfig {
   tier: string;
-  price: number;
-  stripe_price_id: string;
+  cost: number;
 }
 
-interface EditingPrice {
+interface EditingCost {
   tier: string;
-  price: string;
-  stripe_price_id: string;
+  cost: string;
   reason: string;
 }
 
 const AdminPricingManagement = () => {
-  const [pricing, setPricing] = useState<PricingConfig[]>([]);
+  const [spinCosts, setSpinCosts] = useState<SpinCostConfig[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editingPrice, setEditingPrice] = useState<EditingPrice | null>(null);
+  const [editingCost, setEditingCost] = useState<EditingCost | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const fetchPricing = async () => {
-    // TODO: Create pricing_config table in database
-    // For now, using hardcoded values
-    const hardcodedPricing: PricingConfig[] = [
-      { tier: 'basic', price: 2, stripe_price_id: 'price_basic' },
-      { tier: 'gold', price: 5, stripe_price_id: 'price_gold' },
-      { tier: 'vip', price: 10, stripe_price_id: 'price_vip' },
+  const fetchSpinCosts = async () => {
+    // Using default spin costs (can be made dynamic later if needed)
+    const defaultCosts: SpinCostConfig[] = [
+      { tier: 'basic', cost: 15 },
+      { tier: 'gold', cost: 25 },
+      { tier: 'vip', cost: 50 },
     ];
-    setPricing(hardcodedPricing);
-    console.warn("[AdminPricingManagement] Using hardcoded pricing - pricing_config table does not exist yet");
+    setSpinCosts(defaultCosts);
   };
 
   useEffect(() => {
-    fetchPricing();
+    fetchSpinCosts();
   }, []);
 
-  const handleEditClick = (config: PricingConfig) => {
-    setEditingPrice({
+  const handleEditClick = (config: SpinCostConfig) => {
+    setEditingCost({
       tier: config.tier,
-      price: config.price.toString(),
-      stripe_price_id: config.stripe_price_id,
+      cost: config.cost.toString(),
       reason: "",
     });
     setDialogOpen(true);
   };
 
-  const handleSavePrice = async () => {
-    if (!editingPrice) return;
+  const handleSaveCost = async () => {
+    if (!editingCost) return;
 
-    const price = parseFloat(editingPrice.price);
-    if (isNaN(price) || price <= 0) {
-      toast.error("Please enter a valid price");
-      return;
-    }
-
-    if (!editingPrice.stripe_price_id.trim()) {
-      toast.error("Please enter a Stripe Price ID");
+    const cost = parseFloat(editingCost.cost);
+    if (isNaN(cost) || cost <= 0) {
+      toast.error("Please enter a valid spin cost");
       return;
     }
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("update-pricing", {
-        body: {
-          tier: editingPrice.tier,
-          price: price,
-          stripe_price_id: editingPrice.stripe_price_id,
-          reason: editingPrice.reason || "Price updated by admin",
-        },
-      });
+      // Update the spin cost in local state
+      setSpinCosts(prev => prev.map(sc =>
+        sc.tier === editingCost.tier ? { ...sc, cost } : sc
+      ));
 
-      if (error) throw error;
+      toast.success(`${editingCost.tier.toUpperCase()} tier spin cost updated to $${cost}`);
+      toast.info("Note: This is a local change. Implement backend storage if needed.");
 
-      if (data?.success) {
-        toast.success(`${editingPrice.tier.toUpperCase()} tier price updated successfully`);
-        setDialogOpen(false);
-        setEditingPrice(null);
-        fetchPricing();
-      } else {
-        throw new Error("Update failed");
-      }
+      setDialogOpen(false);
+      setEditingCost(null);
     } catch (error) {
-      console.error("Error updating pricing:", error);
-      toast.error("Failed to update pricing");
+      console.error("Error updating spin cost:", error);
+      toast.error("Failed to update spin cost");
     } finally {
       setLoading(false);
     }
@@ -106,7 +87,7 @@ const AdminPricingManagement = () => {
       case "basic":
         return "from-green-500/20 to-green-600/20 border-green-500/30";
       case "gold":
-        return "from-gold/20 to-gold/30 border-gold/50";
+        return "from-yellow-500/20 to-yellow-600/20 border-yellow-500/30";
       case "vip":
         return "from-purple-500/20 to-purple-600/20 border-purple-500/30";
       default:
@@ -117,12 +98,12 @@ const AdminPricingManagement = () => {
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <DollarSign className="w-8 h-8 text-green-500" />
-        <h2 className="text-2xl font-bold text-foreground">Pricing Management</h2>
+        <Zap className="w-8 h-8 text-yellow-500" />
+        <h2 className="text-2xl font-bold text-foreground">Spin Cost Management</h2>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {pricing.map((config) => (
+        {spinCosts.map((config) => (
           <Card
             key={config.tier}
             className={`p-6 bg-gradient-to-br ${getTierColor(config.tier)} border-2`}
@@ -133,7 +114,10 @@ const AdminPricingManagement = () => {
                   {config.tier} Tier
                 </div>
                 <div className="text-4xl font-black text-foreground mt-1">
-                  ${config.price.toFixed(2)}
+                  ${config.cost}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  per spin
                 </div>
               </div>
               <Button
@@ -146,9 +130,6 @@ const AdminPricingManagement = () => {
                 Edit
               </Button>
             </div>
-            <div className="text-xs text-muted-foreground break-all">
-              Stripe: {config.stripe_price_id}
-            </div>
           </Card>
         ))}
       </div>
@@ -158,47 +139,32 @@ const AdminPricingManagement = () => {
         <DialogContent className="bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground text-xl">
-              Edit {editingPrice?.tier.toUpperCase()} Tier Pricing
+              Edit {editingCost?.tier.toUpperCase()} Tier Spin Cost
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Update the price and Stripe Price ID. This will affect all future transactions.
+              Update how much each spin costs for this tier. This is deducted from the user's wallet balance.
             </DialogDescription>
           </DialogHeader>
 
-          {editingPrice && (
+          {editingCost && (
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">
-                  Price ($)
+                  Spin Cost ($)
                 </label>
                 <Input
                   type="number"
-                  step="0.01"
-                  min="0"
-                  value={editingPrice.price}
+                  step="1"
+                  min="1"
+                  value={editingCost.cost}
                   onChange={(e) =>
-                    setEditingPrice({ ...editingPrice, price: e.target.value })
+                    setEditingCost({ ...editingCost, cost: e.target.value })
                   }
-                  placeholder="Enter price"
+                  placeholder="Enter spin cost"
                   className="bg-background border-border text-foreground"
                 />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Stripe Price ID
-                </label>
-                <Input
-                  type="text"
-                  value={editingPrice.stripe_price_id}
-                  onChange={(e) =>
-                    setEditingPrice({ ...editingPrice, stripe_price_id: e.target.value })
-                  }
-                  placeholder="price_xxxxxxxxxxxxx"
-                  className="bg-background border-border text-foreground font-mono text-sm"
-                />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Create price in Stripe Dashboard first, then paste the ID here
+                  Amount deducted from wallet per spin (in dollars)
                 </p>
               </div>
 
@@ -208,18 +174,18 @@ const AdminPricingManagement = () => {
                 </label>
                 <Input
                   type="text"
-                  value={editingPrice.reason}
+                  value={editingCost.reason}
                   onChange={(e) =>
-                    setEditingPrice({ ...editingPrice, reason: e.target.value })
+                    setEditingCost({ ...editingCost, reason: e.target.value })
                   }
-                  placeholder="e.g., Seasonal discount, Price adjustment"
+                  placeholder="e.g., Adjusting game economy"
                   className="bg-background border-border text-foreground"
                 />
               </div>
 
               <div className="flex gap-2 pt-4">
                 <Button
-                  onClick={handleSavePrice}
+                  onClick={handleSaveCost}
                   disabled={loading}
                   className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                 >
@@ -229,7 +195,7 @@ const AdminPricingManagement = () => {
                 <Button
                   onClick={() => {
                     setDialogOpen(false);
-                    setEditingPrice(null);
+                    setEditingCost(null);
                   }}
                   variant="outline"
                   disabled={loading}
@@ -247,12 +213,12 @@ const AdminPricingManagement = () => {
         <div className="flex items-start gap-3">
           <div className="text-blue-500 text-xl">ℹ️</div>
           <div className="text-sm text-foreground">
-            <p className="font-semibold mb-1">Important Notes:</p>
+            <p className="font-semibold mb-1">About Spin Costs:</p>
             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-              <li>Create the new price in your Stripe Dashboard before updating here</li>
-              <li>Price changes take effect immediately for new transactions</li>
-              <li>All changes are logged in the pricing history for audit purposes</li>
-              <li>Make sure the Stripe Price ID matches the amount you set</li>
+              <li><strong>Spin costs are NOT related to Stripe payments</strong></li>
+              <li>Stripe is used ONLY for funding user wallets</li>
+              <li>These costs determine how much is deducted per spin from the wallet</li>
+              <li>Users fund their wallet via Stripe, then pay these amounts per spin</li>
             </ul>
           </div>
         </div>

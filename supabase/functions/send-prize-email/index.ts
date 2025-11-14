@@ -50,69 +50,70 @@ serve(async (req) => {
     let emailHtml = "";
     let emailText = "";
 
+    // Get user name with fallback
+    const userName = prizeData.userName || email.split('@')[0] || 'Winner';
+
     // Determine prize type based on content (URL = video, uppercase = code, else message)
-    const isVideoLink = prizeData.deliveryContent.startsWith('http');
-    const isCode = !isVideoLink && /^[A-Z0-9-]{6,}$/.test(prizeData.deliveryContent);
+    const content = prizeData.deliveryContent || '';
+    const isVideoLink = content.includes('http://') || content.includes('https://');
+    const isCode = !isVideoLink && content.length > 0 && /^[A-Z0-9-]{6,}$/.test(content);
 
     if (isVideoLink) {
-      emailSubject = `🎉 Your ${tier.toUpperCase()} Mystery Video is Here!`;
-      emailHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .prize-box { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #667eea; }
-            .video-link { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
-            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-            .emoji { font-size: 48px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <div class="emoji">${prizeData.emoji}</div>
-              <h1>Congratulations!</h1>
-              <p>You Won: ${prizeData.name}</p>
-              <p><strong>${tier.toUpperCase()} Tier</strong></p>
-            </div>
-            <div class="content">
-              <div class="prize-box">
-                <h2>Your Exclusive Content:</h2>
-                <p>As a ${tier.toUpperCase()} tier member, here's your exclusive mystery video:</p>
-                <p style="word-break: break-all;"><strong>${prizeData.deliveryContent}</strong></p>
-                <center>
-                  <a href="${prizeData.deliveryContent}" class="video-link">🎥 Watch Your Video</a>
-                </center>
-              </div>
-              <p><strong>Important:</strong></p>
-              <ul>
-                <li>This link is exclusive to you</li>
-                <li>Save this email for future access</li>
-                <li>Enjoy your ${tier} tier exclusive content!</li>
-              </ul>
-            </div>
-            <div class="footer">
-              <p>Thank you for being a ${tier.toUpperCase()} supporter!</p>
-              <p>&copy; ${new Date().getFullYear()} Supporterswin. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
-      emailText = `
-Congratulations! ${prizeData.emoji}
+      emailSubject = `🎉 Your ${tier.toUpperCase()} Mystery Video is Here, ${userName}!`;
+      emailHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .prize-box { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #667eea; }
+    .video-link { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+    .emoji { font-size: 48px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="emoji">${prizeData.emoji}</div>
+      <h1>Congratulations, ${userName}!</h1>
+      <p>You Won: ${prizeData.name}</p>
+      <p><strong>${tier.toUpperCase()} Tier</strong></p>
+    </div>
+    <div class="content">
+      <div class="prize-box">
+        <h2>Your Exclusive Content:</h2>
+        <p>As a ${tier.toUpperCase()} tier member, here's your exclusive mystery video:</p>
+        <center>
+          <a href="${content}" class="video-link">🎥 Watch Your Video</a>
+        </center>
+        <p style="word-break: break-all; font-size: 12px; color: #666; margin-top: 15px;">Link: ${content}</p>
+      </div>
+      <p><strong>Important:</strong></p>
+      <ul>
+        <li>This link is exclusive to you</li>
+        <li>Save this email for future access</li>
+        <li>Enjoy your ${tier} tier exclusive content!</li>
+      </ul>
+    </div>
+    <div class="footer">
+      <p>Thank you for being a ${tier.toUpperCase()} supporter!</p>
+      <p>&copy; ${new Date().getFullYear()} Supporterswin. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+      emailText = `Congratulations, ${userName}! ${prizeData.emoji}
 
 You Won: ${prizeData.name}
 Tier: ${tier.toUpperCase()}
 
 Your Exclusive ${tier.toUpperCase()} Content:
-${prizeData.deliveryContent}
-
-Watch your video here: ${prizeData.deliveryContent}
+Watch your video here: ${content}
 
 Important:
 - This link is exclusive to you
@@ -121,64 +122,111 @@ Important:
 
 Thank you for being a ${tier.toUpperCase()} supporter!
 
-© ${new Date().getFullYear()} Supporterswin. All rights reserved.
-      `.trim();
+© ${new Date().getFullYear()} Supporterswin. All rights reserved.`.trim();
     } else if (isCode) {
-      emailSubject = `🎉 Your ${tier.toUpperCase()} Discount Code!`;
-      emailHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .code-box { background: white; padding: 30px; margin: 20px 0; border-radius: 8px; border: 3px dashed #667eea; text-align: center; }
-            .code { font-size: 28px; font-weight: bold; color: #667eea; letter-spacing: 2px; }
-            .emoji { font-size: 48px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <div class="emoji">${prizeData.emoji}</div>
-              <h1>Congratulations!</h1>
-              <p>You Won: ${prizeData.name}</p>
-            </div>
-            <div class="content">
-              <div class="code-box">
-                <p><strong>Your ${tier.toUpperCase()} Tier Code:</strong></p>
-                <p class="code">${prizeData.deliveryContent}</p>
-              </div>
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
-      emailText = `
-Congratulations! ${prizeData.emoji}
+      emailSubject = `🎉 Your ${tier.toUpperCase()} Discount Code, ${userName}!`;
+      emailHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .code-box { background: white; padding: 30px; margin: 20px 0; border-radius: 8px; border: 3px dashed #667eea; text-align: center; }
+    .code { font-size: 28px; font-weight: bold; color: #667eea; letter-spacing: 2px; }
+    .emoji { font-size: 48px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="emoji">${prizeData.emoji}</div>
+      <h1>Congratulations, ${userName}!</h1>
+      <p>You Won: ${prizeData.name}</p>
+      <p><strong>${tier.toUpperCase()} Tier</strong></p>
+    </div>
+    <div class="content">
+      <div class="code-box">
+        <p><strong>Your ${tier.toUpperCase()} Tier Code:</strong></p>
+        <p class="code">${content}</p>
+      </div>
+      <p><strong>Instructions:</strong></p>
+      <ul>
+        <li>Copy the code above</li>
+        <li>Use it at checkout for your discount</li>
+        <li>Code is exclusive to ${tier.toUpperCase()} tier members</li>
+      </ul>
+    </div>
+    <div class="footer">
+      <p>Thank you for being a ${tier.toUpperCase()} supporter!</p>
+      <p>&copy; ${new Date().getFullYear()} Supporterswin. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+      emailText = `Congratulations, ${userName}! ${prizeData.emoji}
 
 You Won: ${prizeData.name}
 
-Your ${tier.toUpperCase()} Tier Code: ${prizeData.deliveryContent}
-      `.trim();
+Your ${tier.toUpperCase()} Tier Code: ${content}
+
+Instructions:
+- Copy the code above
+- Use it at checkout for your discount
+- Code is exclusive to ${tier.toUpperCase()} tier members
+
+Thank you for being a ${tier.toUpperCase()} supporter!
+
+© ${new Date().getFullYear()} Supporterswin. All rights reserved.`.trim();
     } else {
       // Message type
       emailSubject = `🎉 Prize Won: ${prizeData.name}`;
-      emailHtml = `
-        <!DOCTYPE html>
-        <html>
-        <body style="font-family: Arial, sans-serif;">
-          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1>Congratulations! ${prizeData.emoji}</h1>
-            <h2>${prizeData.name}</h2>
-            <p>${prizeData.deliveryContent}</p>
-          </div>
-        </body>
-        </html>
-      `;
-      emailText = `Congratulations! ${prizeData.emoji}\n\n${prizeData.name}\n\n${prizeData.deliveryContent}`;
+      emailHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .emoji { font-size: 48px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="emoji">${prizeData.emoji}</div>
+      <h1>Congratulations, ${userName}!</h1>
+      <p>You Won: ${prizeData.name}</p>
+      <p><strong>${tier.toUpperCase()} Tier</strong></p>
+    </div>
+    <div class="content">
+      <p>${content || 'Your prize is being prepared! Check back soon.'}</p>
+    </div>
+    <div class="footer">
+      <p>Thank you for being a ${tier.toUpperCase()} supporter!</p>
+      <p>&copy; ${new Date().getFullYear()} Supporterswin. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+      emailText = `Congratulations, ${userName}! ${prizeData.emoji}
+
+You Won: ${prizeData.name}
+Tier: ${tier.toUpperCase()}
+
+${content || 'Your prize is being prepared! Check back soon.'}
+
+Thank you for being a ${tier.toUpperCase()} supporter!
+
+© ${new Date().getFullYear()} Supporterswin. All rights reserved.`.trim();
     }
 
     // Send email via SendGrid

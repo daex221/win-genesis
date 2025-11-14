@@ -14,7 +14,6 @@ interface Tier {
 }
 
 const PricingCards = () => {
-  const [loading, setLoading] = useState<string | null>(null);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [fetchingPrices, setFetchingPrices] = useState(true);
 
@@ -94,27 +93,9 @@ const PricingCards = () => {
   }, []);
 
   const handleTierClick = async (tier: string, price: number) => {
-    try {
-      setLoading(tier);
-      toast.loading("Creating checkout session...");
-
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { tier },
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        // Open Stripe checkout in new tab
-        window.open(data.url, "_blank");
-        toast.success("Checkout opened in new tab!");
-      }
-    } catch (error) {
-      console.error("Checkout error:", error);
-      toast.error("Failed to create checkout session");
-    } finally {
-      setLoading(null);
-    }
+    // Redirect to sign-in page instead of creating checkout session
+    // Users should sign in first, then use their wallet to spin
+    window.location.href = "/auth";
   };
 
   if (fetchingPrices) {
@@ -165,10 +146,9 @@ const PricingCards = () => {
 
           <Button
             onClick={() => handleTierClick(tier.name.toLowerCase(), tier.price)}
-            disabled={loading === tier.name.toLowerCase()}
-            className={`w-full bg-gradient-to-r ${tier.buttonGradient} hover:scale-105 transition-transform font-bold text-lg py-6 rounded-full disabled:opacity-50`}
+            className={`w-full bg-gradient-to-r ${tier.buttonGradient} hover:scale-105 transition-transform font-bold text-lg py-6 rounded-full`}
           >
-            {loading === tier.name.toLowerCase() ? "PROCESSING..." : "SPIN NOW →"}
+            SIGN IN TO SPIN →
           </Button>
         </Card>
       ))}

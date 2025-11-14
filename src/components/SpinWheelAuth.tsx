@@ -89,46 +89,33 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
     }
   }, [prizes]);
 
-  const sendPrizeWebhook = async (prizeData: { name: string; emoji: string; delivery_content?: string }) => {
+  const sendPrizeEmail = async (prizeData: { name: string; emoji: string; delivery_content?: string }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
       const payload = {
-        userId: user?.id || 'unknown',
         email: user?.email || '',
-        phone: user?.user_metadata?.phone || '',
-        telegram: user?.user_metadata?.telegram || '',
-        instagram: user?.user_metadata?.instagram || '',
-        prizeWon: prizeData.name,
-        prizeEmoji: prizeData.emoji,
-        deliveryContent: prizeData.delivery_content || '',  // ✅ Now includes video link!
-        tier: tier,
-        spinCost: spinCost,
-        transactionId: `spin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: new Date().toISOString()
+        prizeData: {
+          name: prizeData.name,
+          emoji: prizeData.emoji,
+          deliveryContent: prizeData.delivery_content || '',
+          tier: tier,
+          userName: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Winner'
+        }
       };
 
-      // Using environment variables for webhook auth (still exposed in frontend - consider moving to backend)
-      const username = import.meta.env.VITE_WEBHOOK_USERNAME || '';
-      const password = import.meta.env.VITE_WEBHOOK_PASSWORD || '';
-      const auth = btoa(`${username}:${password}`);
-      
-      const response = await fetch('https://daex2212.app.n8n.cloud/webhook/prize-delivery', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${auth}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+      // Call Supabase Edge Function to send email via SendGrid
+      const { data, error } = await supabase.functions.invoke('send-prize-email', {
+        body: payload
       });
 
-      if (response.ok) {
-        toast.success('🎁 Prize is being delivered!');
+      if (error) {
+        console.error('Email sending error:', error);
       } else {
-        console.error('Webhook response not OK:', response.status);
+        toast.success('🎁 Prize notification sent to your email!');
       }
     } catch (error) {
-      console.error('Webhook error:', error);
+      console.error('Prize email error:', error);
       // Don't show error to user, prize still won
     }
   };
@@ -269,12 +256,12 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
         setIsSpinning(false);
         toast.dismiss();
         playWin();
-        
-        // Send webhook notification with delivery content
-        await sendPrizeWebhook({
+
+        // Send email notification with delivery content
+        await sendPrizeEmail({
           name: wonPrize.name,
           emoji: wonPrize.emoji,
-          delivery_content: wonPrize.delivery_content  // ✅ Pass video link to webhook
+          delivery_content: wonPrize.delivery_content
         });
 
         // Trigger confetti

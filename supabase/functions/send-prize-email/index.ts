@@ -10,10 +10,10 @@ interface EmailRequest {
   prizeData: {
     name: string;
     emoji: string;
-    delivery_content: string;
-    type: string;
+    deliveryContent: string;
+    tier: string;
+    userName?: string;
   };
-  tier: string;
 }
 
 serve(async (req) => {
@@ -22,7 +22,8 @@ serve(async (req) => {
   }
 
   try {
-    const { email, prizeData, tier }: EmailRequest = await req.json();
+    const { email, prizeData }: EmailRequest = await req.json();
+    const tier = prizeData.tier;
 
     console.log(`[SEND-PRIZE-EMAIL] Sending ${prizeData.name} to ${email} (${tier} tier)`);
 
@@ -49,7 +50,11 @@ serve(async (req) => {
     let emailHtml = "";
     let emailText = "";
 
-    if (prizeData.type === "digital_link") {
+    // Determine prize type based on content (URL = video, uppercase = code, else message)
+    const isVideoLink = prizeData.deliveryContent.startsWith('http');
+    const isCode = !isVideoLink && /^[A-Z0-9-]{6,}$/.test(prizeData.deliveryContent);
+
+    if (isVideoLink) {
       emailSubject = `🎉 Your ${tier.toUpperCase()} Mystery Video is Here!`;
       emailHtml = `
         <!DOCTYPE html>
@@ -78,9 +83,9 @@ serve(async (req) => {
               <div class="prize-box">
                 <h2>Your Exclusive Content:</h2>
                 <p>As a ${tier.toUpperCase()} tier member, here's your exclusive mystery video:</p>
-                <p style="word-break: break-all;"><strong>${prizeData.delivery_content}</strong></p>
+                <p style="word-break: break-all;"><strong>${prizeData.deliveryContent}</strong></p>
                 <center>
-                  <a href="${prizeData.delivery_content}" class="video-link">🎥 Watch Your Video</a>
+                  <a href="${prizeData.deliveryContent}" class="video-link">🎥 Watch Your Video</a>
                 </center>
               </div>
               <p><strong>Important:</strong></p>
@@ -105,9 +110,9 @@ You Won: ${prizeData.name}
 Tier: ${tier.toUpperCase()}
 
 Your Exclusive ${tier.toUpperCase()} Content:
-${prizeData.delivery_content}
+${prizeData.deliveryContent}
 
-Watch your video here: ${prizeData.delivery_content}
+Watch your video here: ${prizeData.deliveryContent}
 
 Important:
 - This link is exclusive to you
@@ -118,7 +123,7 @@ Thank you for being a ${tier.toUpperCase()} supporter!
 
 © ${new Date().getFullYear()} Supporterswin. All rights reserved.
       `.trim();
-    } else if (prizeData.type === "code") {
+    } else if (isCode) {
       emailSubject = `🎉 Your ${tier.toUpperCase()} Discount Code!`;
       emailHtml = `
         <!DOCTYPE html>
@@ -144,7 +149,7 @@ Thank you for being a ${tier.toUpperCase()} supporter!
             <div class="content">
               <div class="code-box">
                 <p><strong>Your ${tier.toUpperCase()} Tier Code:</strong></p>
-                <p class="code">${prizeData.delivery_content}</p>
+                <p class="code">${prizeData.deliveryContent}</p>
               </div>
             </div>
           </div>
@@ -156,7 +161,7 @@ Congratulations! ${prizeData.emoji}
 
 You Won: ${prizeData.name}
 
-Your ${tier.toUpperCase()} Tier Code: ${prizeData.delivery_content}
+Your ${tier.toUpperCase()} Tier Code: ${prizeData.deliveryContent}
       `.trim();
     } else {
       // Message type
@@ -168,12 +173,12 @@ Your ${tier.toUpperCase()} Tier Code: ${prizeData.delivery_content}
           <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
             <h1>Congratulations! ${prizeData.emoji}</h1>
             <h2>${prizeData.name}</h2>
-            <p>${prizeData.delivery_content}</p>
+            <p>${prizeData.deliveryContent}</p>
           </div>
         </body>
         </html>
       `;
-      emailText = `Congratulations! ${prizeData.emoji}\n\n${prizeData.name}\n\n${prizeData.delivery_content}`;
+      emailText = `Congratulations! ${prizeData.emoji}\n\n${prizeData.name}\n\n${prizeData.deliveryContent}`;
     }
 
     // Send email via SendGrid

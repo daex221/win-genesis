@@ -29,10 +29,9 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
-  const [musicStarted, setMusicStarted] = useState(false);
   const [spinCost, setSpinCost] = useState(DEFAULT_SPIN_COSTS[tier]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { playSpinStart, playSpinTicks, playWin, playClick, playBackgroundMusic } = useSounds();
+  const { playSpinStart, playSpinTicks, playWin, playClick } = useSounds();
 
   const colors = [
     "#ec4899", "#3b82f6", "#8b5cf6", "#06b6d4",
@@ -333,10 +332,6 @@ const SpinWheelAuth = ({ tier, onPrizeWon, balance, onBalanceChange }: SpinWheel
           <button
             onClick={() => {
               playClick();
-              if (!musicStarted) {
-                playBackgroundMusic();
-                setMusicStarted(true);
-              }
               spinWheel();
             }}
             disabled={isSpinning}

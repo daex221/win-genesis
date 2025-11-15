@@ -14,17 +14,183 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          message: string
+          spin_id: string | null
+          status: string | null
+          title: string
+          type: string
+          user_email: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          spin_id?: string | null
+          status?: string | null
+          title: string
+          type: string
+          user_email: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          spin_id?: string | null
+          status?: string | null
+          title?: string
+          type?: string
+          user_email?: string
+        }
+        Relationships: []
+      }
+      email_logs: {
+        Row: {
+          created_at: string
+          email_type: string
+          error_message: string | null
+          id: string
+          sendgrid_message_id: string | null
+          sent_at: string | null
+          spin_id: string | null
+          status: string
+          user_email: string
+        }
+        Insert: {
+          created_at?: string
+          email_type: string
+          error_message?: string | null
+          id?: string
+          sendgrid_message_id?: string | null
+          sent_at?: string | null
+          spin_id?: string | null
+          status?: string
+          user_email: string
+        }
+        Update: {
+          created_at?: string
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          sendgrid_message_id?: string | null
+          sent_at?: string | null
+          spin_id?: string | null
+          status?: string
+          user_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_spin_id_fkey"
+            columns: ["spin_id"]
+            isOneToOne: false
+            referencedRelation: "spins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_config: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          price: number
+          stripe_price_id: string | null
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          price: number
+          stripe_price_id?: string | null
+          tier: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          price?: number
+          stripe_price_id?: string | null
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prize_content_pool: {
+        Row: {
+          content_name: string | null
+          content_type: string | null
+          content_url: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          prize_id: string
+          sequence_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          content_name?: string | null
+          content_type?: string | null
+          content_url: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          prize_id: string
+          sequence_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          content_name?: string | null
+          content_type?: string | null
+          content_url?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          prize_id?: string
+          sequence_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prize_content_pool_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "prize_metadata"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prize_delivery: {
         Row: {
-          delivery_content: string
+          delivery_content_basic: string
+          delivery_content_gold: string
+          delivery_content_legacy: string | null
+          delivery_content_vip: string
+          is_tier_specific: boolean
           prize_id: string
         }
         Insert: {
-          delivery_content: string
+          delivery_content_basic: string
+          delivery_content_gold: string
+          delivery_content_legacy?: string | null
+          delivery_content_vip: string
+          is_tier_specific?: boolean
           prize_id: string
         }
         Update: {
-          delivery_content?: string
+          delivery_content_basic?: string
+          delivery_content_gold?: string
+          delivery_content_legacy?: string | null
+          delivery_content_vip?: string
+          is_tier_specific?: boolean
           prize_id?: string
         }
         Relationships: [
@@ -42,6 +208,7 @@ export type Database = {
           active: boolean
           created_at: string
           emoji: string
+          fulfillment_type: string
           id: string
           name: string
           type: string
@@ -53,6 +220,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           emoji: string
+          fulfillment_type?: string
           id?: string
           name: string
           type: string
@@ -64,6 +232,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           emoji?: string
+          fulfillment_type?: string
           id?: string
           name?: string
           type?: string
@@ -73,11 +242,49 @@ export type Database = {
         }
         Relationships: []
       }
+      shout_out_requests: {
+        Row: {
+          audio_url: string | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          message: string
+          spin_id: string | null
+          status: string | null
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          audio_url?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          spin_id?: string | null
+          status?: string | null
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          audio_url?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          spin_id?: string | null
+          status?: string | null
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       spins: {
         Row: {
           amount_paid: number
           created_at: string
           email: string
+          fulfilled_at: string | null
+          fulfillment_status: string
           id: string
           prize_id: string
           stripe_payment_id: string | null
@@ -88,6 +295,8 @@ export type Database = {
           amount_paid: number
           created_at?: string
           email: string
+          fulfilled_at?: string | null
+          fulfillment_status?: string
           id?: string
           prize_id: string
           stripe_payment_id?: string | null
@@ -98,6 +307,8 @@ export type Database = {
           amount_paid?: number
           created_at?: string
           email?: string
+          fulfilled_at?: string | null
+          fulfillment_status?: string
           id?: string
           prize_id?: string
           stripe_payment_id?: string | null
@@ -144,6 +355,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_prize_history: {
+        Row: {
+          content_id: string | null
+          content_url: string | null
+          id: string
+          prize_id: string
+          received_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content_id?: string | null
+          content_url?: string | null
+          id?: string
+          prize_id: string
+          received_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content_id?: string | null
+          content_url?: string | null
+          id?: string
+          prize_id?: string
+          received_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_prize_history_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "prize_content_pool"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_prize_history_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "prize_metadata"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           app_role: string
@@ -161,6 +414,39 @@ export type Database = {
           app_role?: string
           created_at?: string
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vouchers: {
+        Row: {
+          created_at: string | null
+          discount_percent: number
+          expires_at: string | null
+          id: string
+          tier: string | null
+          used: boolean | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          discount_percent?: number
+          expires_at?: string | null
+          id?: string
+          tier?: string | null
+          used?: boolean | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          discount_percent?: number
+          expires_at?: string | null
+          id?: string
+          tier?: string | null
+          used?: boolean | null
+          used_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -230,11 +516,56 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          payload: Json
+          response_code: number | null
+          sent_at: string | null
+          spin_id: string | null
+          status: string
+          webhook_url: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          payload: Json
+          response_code?: number | null
+          sent_at?: string | null
+          spin_id?: string | null
+          status?: string
+          webhook_url: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          payload?: Json
+          response_code?: number | null
+          sent_at?: string | null
+          spin_id?: string | null
+          status?: string
+          webhook_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_logs_spin_id_fkey"
+            columns: ["spin_id"]
+            isOneToOne: false
+            referencedRelation: "spins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      grant_admin_by_email: { Args: { user_email: string }; Returns: undefined }
       has_role: {
         Args: { required_role: string; user_id: string }
         Returns: boolean

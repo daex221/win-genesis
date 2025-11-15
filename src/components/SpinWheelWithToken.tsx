@@ -19,8 +19,7 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
-  const [musicStarted, setMusicStarted] = useState(false);
-  const { playSpinStart, playSpinTicks, playWin, playClick, playBackgroundMusic } = useSounds();
+  const { playSpinStart, playSpinTicks, playWin, playClick } = useSounds();
 
   useEffect(() => {
     fetchPrizes();
@@ -145,10 +144,6 @@ const SpinWheelWithToken = ({ token, tier, onPrizeWon }: SpinWheelWithTokenProps
           <button
             onClick={() => {
               playClick();
-              if (!musicStarted) {
-                playBackgroundMusic();
-                setMusicStarted(true);
-              }
               spinWheel();
             }}
             disabled={isSpinning}

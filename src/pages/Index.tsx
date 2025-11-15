@@ -139,12 +139,10 @@ const Index = () => {
         <div className="flex justify-center mb-12">
           <div className="relative inline-block">
             <div className="absolute inset-0 bg-cyan-500/20 rounded-[60px] blur-xl"></div>
-            <div className="relative border-4 border-cyan-400 rounded-[60px] px-16 py-6 shadow-[0_0_40px_rgba(0,217,255,0.6)] flex items-center gap-6">
-              <Crown className="w-12 h-12 text-yellow-400 animate-pulse" />
+            <div className="relative border-4 border-cyan-400 rounded-[60px] px-16 py-6 shadow-[0_0_40px_rgba(0,217,255,0.6)]">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-cyan-400 tracking-wider">
                 TAP TO SPIN & WIN
               </h1>
-              <Crown className="w-12 h-12 text-yellow-400 animate-pulse" />
             </div>
           </div>
         </div>

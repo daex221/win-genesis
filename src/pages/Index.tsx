@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import supporterswinLogo from "@/assets/supporterswin-logo.jpg";
 import { toast } from "sonner";
-import { Zap, Gift, Users, Award, TrendingUp } from "lucide-react";
+import { Zap, Gift, Users, Award, TrendingUp, Crown, Circle, Lock, DollarSign, Sparkles } from "lucide-react";
 import UserMenu from "@/components/UserMenu";
 
 const Index = () => {
@@ -123,9 +123,10 @@ const Index = () => {
               <NavLink to="/admin">
                 <Button
                   variant="secondary"
-                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white border-0"
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white border-0 flex items-center gap-2"
                 >
-                  🔐 Admin
+                  <Lock className="w-4 h-4" />
+                  Admin
                 </Button>
               </NavLink>
             )}
@@ -138,10 +139,12 @@ const Index = () => {
         <div className="flex justify-center mb-12">
           <div className="relative inline-block">
             <div className="absolute inset-0 bg-cyan-500/20 rounded-[60px] blur-xl"></div>
-            <div className="relative border-4 border-cyan-400 rounded-[60px] px-16 py-6 shadow-[0_0_40px_rgba(0,217,255,0.6)]">
+            <div className="relative border-4 border-cyan-400 rounded-[60px] px-16 py-6 shadow-[0_0_40px_rgba(0,217,255,0.6)] flex items-center gap-6">
+              <Crown className="w-12 h-12 text-yellow-400 animate-pulse" />
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-cyan-400 tracking-wider">
                 TAP TO SPIN & WIN
               </h1>
+              <Crown className="w-12 h-12 text-yellow-400 animate-pulse" />
             </div>
           </div>
         </div>
@@ -166,8 +169,9 @@ const Index = () => {
                       : "bg-white/5 backdrop-blur-lg border-white/10 hover:bg-white/10"
                   }`}
                 >
+                  {tier === "basic" && <Circle className="w-4 h-4" />}
                   {tier === "gold" && <Zap className="w-4 h-4" />}
-                  {tier === "vip" && <Award className="w-4 h-4" />}
+                  {tier === "vip" && <Crown className="w-4 h-4" />}
                   {tier.toUpperCase()}
                 </Button>
               ))}
@@ -255,12 +259,13 @@ const Index = () => {
               <div className="relative inline-block">
                 <div className="absolute inset-0 bg-cyan-500/20 rounded-full blur-2xl"></div>
                 <div className="relative w-32 h-32 rounded-full border-4 border-cyan-400 shadow-[0_0_40px_rgba(0,217,255,0.6)] flex items-center justify-center bg-gradient-to-br from-cyan-950/50 to-blue-950/50 mb-4">
-                  <span className="text-5xl text-cyan-400">$</span>
+                  <DollarSign className="w-16 h-16 text-cyan-400" />
                 </div>
               </div>
               <div className="relative inline-block">
                 <div className="absolute inset-0 bg-purple-500/20 rounded-3xl blur-xl"></div>
-                <div className="relative border-3 border-purple-500 rounded-3xl px-6 py-3 shadow-[0_0_30px_rgba(168,85,247,0.5)] bg-purple-950/30">
+                <div className="relative border-3 border-purple-500 rounded-3xl px-6 py-3 shadow-[0_0_30px_rgba(168,85,247,0.5)] bg-purple-950/30 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-400" />
                   <p className="text-purple-400 font-bold text-base">
                     Spin to Unlock
                     <br />
@@ -271,6 +276,42 @@ const Index = () => {
             </div>
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="border-t border-white/10 py-12 mt-16">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+              {/* Logo with crown decoration */}
+              <div className="flex items-center gap-4">
+                <Crown className="w-8 h-8 text-yellow-400" />
+                <img src={supporterswinLogo} alt="Supporterswin" className="h-12 w-auto" />
+                <Crown className="w-8 h-8 text-yellow-400" />
+              </div>
+              
+              {/* Center info */}
+              <div className="text-center">
+                <p className="text-white/60 text-sm mb-2">Spin, Win, and Support</p>
+                <div className="flex items-center gap-2 justify-center text-cyan-400">
+                  <Circle className="w-3 h-3 fill-cyan-400" />
+                  <span className="text-xs font-semibold">Powered by SupportersWin</span>
+                  <Circle className="w-3 h-3 fill-cyan-400" />
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="flex gap-6">
+                <div className="text-center">
+                  <Gift className="w-6 h-6 text-cyan-400 mx-auto mb-1" />
+                  <p className="text-xs text-white/60">Prizes Won</p>
+                </div>
+                <div className="text-center">
+                  <Users className="w-6 h-6 text-purple-400 mx-auto mb-1" />
+                  <p className="text-xs text-white/60">Happy Winners</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
 
       {/* Win Modal */}

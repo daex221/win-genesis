@@ -5,7 +5,6 @@ import WinModal from "@/components/WinModal";
 import { NavLink } from "@/components/NavLink";
 import WalletBalance from "@/components/WalletBalance";
 import SpinWheelAuth from "@/components/SpinWheelAuth";
-import PricingCards from "@/components/PricingCards";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import supporterswinLogo from "@/assets/supporterswin-logo.jpg";
@@ -137,9 +136,14 @@ const Index = () => {
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* TAP TO SPIN & WIN Header */}
         <div className="flex justify-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-gradient-text drop-shadow-[0_0_30px_rgba(0,217,255,0.5)]">
-            TAP TO SPIN & WIN
-          </h1>
+          <div className="relative inline-block">
+            <div className="absolute inset-0 bg-cyan-500/20 rounded-[60px] blur-xl"></div>
+            <div className="relative border-4 border-cyan-400 rounded-[60px] px-16 py-6 shadow-[0_0_40px_rgba(0,217,255,0.6)]">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-cyan-400 tracking-wider">
+                TAP TO SPIN & WIN
+              </h1>
+            </div>
+          </div>
         </div>
 
         {user ? (
@@ -211,27 +215,12 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Pricing Tiers - VISIBLE TO NON-AUTHENTICATED USERS */}
-            <div className="mb-12">
-              <p className="text-center text-white/60 mb-8 text-lg">
-                Choose your spin tier and tap "Spin Now" to purchase
-              </p>
-              <PricingCards />
-            </div>
-
-            {/* OR divider */}
-            <div className="flex items-center justify-center gap-4 mb-12 max-w-2xl mx-auto">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
-              <span className="text-white/50 text-sm">OR</span>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
-            </div>
-
-            {/* Sign in alternative */}
+            {/* Sign in CTA */}
             <div className="text-center mb-12">
-              <p className="text-white/60 mb-6 text-lg">Sign in to fund your wallet and spin for real prizes!</p>
+              <p className="text-white/80 mb-6 text-lg">Sign in to fund your wallet and spin for real prizes!</p>
               <Button
                 onClick={handleSignIn}
-                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:scale-105 transition-transform text-lg px-8 py-6 min-h-[44px] shadow-[0_0_30px_rgba(0,217,255,0.4)]"
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:scale-105 transition-transform text-lg px-12 py-6 min-h-[44px] shadow-[0_0_30px_rgba(0,217,255,0.6)] border-2 border-cyan-400/50 rounded-full"
               >
                 Sign In to Play
               </Button>
@@ -241,34 +230,44 @@ const Index = () => {
 
         {/* Merch Section */}
         <div className="text-center py-16 border-t border-white/10">
-          <h2 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-4 drop-shadow-[0_0_20px_rgba(0,217,255,0.3)]">
+          <h2 className="text-4xl md:text-5xl font-black text-cyan-400 mb-4 drop-shadow-[0_0_30px_rgba(0,217,255,0.6)]">
             GET EXCLUSIVE MERCH!
           </h2>
-          <p className="text-lg md:text-xl text-white/60 max-w-3xl mx-auto mb-12">
+          <p className="text-lg md:text-xl text-cyan-300/80 max-w-3xl mx-auto mb-12">
             Shop for limited edition merchandise available only to our supporters.
           </p>
 
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-8 mb-8">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-12 mb-8">
             <div className="text-center">
-              <img src={supporterswinLogo} alt="Supporterswin" className="h-24 w-auto mx-auto mb-2" />
-              <p className="text-cyan-400 font-bold text-sm">
-                SUPPORTERS
-                <br />
-                WIN
-              </p>
+              <div className="relative inline-block mb-4">
+                <div className="absolute inset-0 bg-cyan-500/20 rounded-3xl blur-xl"></div>
+                <div className="relative border-3 border-cyan-400 rounded-3xl px-8 py-4 shadow-[0_0_30px_rgba(0,217,255,0.5)] bg-cyan-950/30">
+                  <p className="text-cyan-400 font-bold text-lg tracking-wider">
+                    SUPPORTERS
+                    <br />
+                    WIN
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="hidden sm:block w-px h-32 bg-gradient-to-b from-transparent via-cyan-400 to-transparent" />
-
             <div className="text-center">
-              <div className="w-24 h-24 rounded-full border-4 border-cyan-400 shadow-[0_0_30px_rgba(0,217,255,0.4)] flex items-center justify-center mx-auto mb-2 bg-cyan-500/10">
-                <span className="text-4xl text-cyan-400">$</span>
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-cyan-500/20 rounded-full blur-2xl"></div>
+                <div className="relative w-32 h-32 rounded-full border-4 border-cyan-400 shadow-[0_0_40px_rgba(0,217,255,0.6)] flex items-center justify-center bg-gradient-to-br from-cyan-950/50 to-blue-950/50 mb-4">
+                  <span className="text-5xl text-cyan-400">$</span>
+                </div>
               </div>
-              <p className="text-cyan-400 font-bold text-sm">
-                Spin to Unlock
-                <br />
-                25% Off
-              </p>
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-purple-500/20 rounded-3xl blur-xl"></div>
+                <div className="relative border-3 border-purple-500 rounded-3xl px-6 py-3 shadow-[0_0_30px_rgba(168,85,247,0.5)] bg-purple-950/30">
+                  <p className="text-purple-400 font-bold text-base">
+                    Spin to Unlock
+                    <br />
+                    <span className="text-2xl">25% Off</span>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
